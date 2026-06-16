@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicQ — Live Queue Manager</title>
+  <meta name="description" content="ClinicQ replaces paper token slips with a real-time digital queue for neighbourhood clinics." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #050d1a;
+      --accent: #3b82f6;
+      --teal: #14b8a6;
+      --text: #e8f4ff;
+      --text-sec: #7da8d0;
+      --border: rgba(255,255,255,0.08);
+    }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      overflow: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 30% 20%, rgba(59,130,246,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 70% 80%, rgba(20,184,166,0.09) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .logo {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #60a5fa, #14b8a6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .tagline {
+      font-size: 16px;
+      color: var(--text-sec);
+      margin-bottom: 48px;
+      text-align: center;
+      max-width: 380px;
+      line-height: 1.6;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 560px;
+      padding: 0 20px;
+    }
+    .nav-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 36px 24px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      text-decoration: none;
+      background: rgba(8, 21, 37, 0.7);
+      backdrop-filter: blur(12px);
+      transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+      cursor: pointer;
+    }
+    .nav-card:hover { transform: translateY(-4px); }
+    .nav-card--receptionist {
+      border-color: rgba(59,130,246,0.35);
+      box-shadow: 0 0 32px rgba(59,130,246,0.12);
+    }
+    .nav-card--receptionist:hover {
+      border-color: rgba(59,130,246,0.6);
+      box-shadow: 0 8px 40px rgba(59,130,246,0.25);
+    }
+    .nav-card--patient {
+      border-color: rgba(20,184,166,0.3);
+      box-shadow: 0 0 32px rgba(20,184,166,0.08);
+    }
+    .nav-card--patient:hover {
+      border-color: rgba(20,184,166,0.55);
+      box-shadow: 0 8px 40px rgba(20,184,166,0.2);
+    }
+    .nav-icon { font-size: 44px; }
+    .nav-label {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+    .nav-card--receptionist .nav-label { color: #93c5fd; }
+    .nav-card--patient    .nav-label { color: #2dd4bf; }
+    .nav-desc { font-size: 11px; color: var(--text-sec); text-align: center; line-height: 1.5; }
+    .footer-note {
+      margin-top: 40px;
+      font-size: 11px;
+      color: rgba(125,168,208,0.4);
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">🏥 ClinicQ</div>
+  <p class="tagline">Live digital queue management for neighbourhood clinics. No paper. No shouting.</p>
+  <div class="card-grid">
+    <a href="/receptionist.html" class="nav-card nav-card--receptionist">
+      <div class="nav-icon">🖥️</div>
+      <div class="nav-label">Receptionist View</div>
+      <div class="nav-desc">Add patients, call tokens, manage the queue</div>
+    </a>
+    <a href="/patient.html" class="nav-card nav-card--patient">
+      <div class="nav-icon">📱</div>
+      <div class="nav-label">Patient View</div>
+      <div class="nav-desc">Check wait time and queue position live</div>
+    </a>
+  </div>
+  <div class="footer-note">Socket.IO · Express.js · MongoDB · Vanilla JS</div>
+</body>
+</html>
