@@ -210,6 +210,56 @@ io.on('connection', (socket) => {
     socket.emit('patient_added', { token, name: patient.name });
   });
 
+  // ── ADD EMERGENCY ──────────────────────────────────────────────
+  socket.on('add_emergency', (data) => {
+    const { name, phone } = data;
+    if (!name || !name.trim()) {
+      socket.emit('error_event', { message: 'Patient name is required' });
+      return;
+    }
+
+    const token = state.nextTokenCounter++;
+    const patient = {
+      token,
+      name: name.trim(),
+      phone: phone ? phone.trim() : '',
+      status: 'in-consultation',
+      checkInTime: new Date().toISOString(),
+      consultStartTime: new Date().toISOString(),
+      consultEndTime: null,
+      sessionId: state.sessionId,
+    };
+
+    // Mark current in-consultation patient as done
+    const currentInConsult = state.queue.find(p => p.status === 'in-consultation');
+    if (currentInConsult) {
+      currentInConsult.status = 'done';
+      currentInConsult.consultEndTime = new Date().toISOString();
+      if (state.consultStartTime) {
+        const duration = Date.now() - state.consultStartTime;
+        state.consultDurations.push(duration);
+        if (state.consultDurations.length > 20) state.consultDurations.shift();
+      }
+      state.totalServed++;
+    }
+
+    // Save undo snapshot
+    state.previousToken = state.currentToken;
+    state.lastCallTime = Date.now();
+
+    // Add new emergency patient
+    state.queue.push(patient);
+    state.currentToken = token;
+    state.consultStartTime = Date.now();
+
+    console.log(`[Q] Emergency: Called token #${token} — ${patient.name}`);
+
+    persistToDb();
+    broadcast();
+
+    socket.emit('patient_added', { token, name: patient.name });
+  });
+
   // ── CALL NEXT ────────────────────────────────────────────────
   socket.on('call_next', () => {
     const nextPatient = state.queue.find(p => p.status === 'waiting');

@@ -248,4 +248,4 @@ Clinic-Queue/
 
 ## 📄 License
 
-MIT © 2026 · Built for the [Wooble Clinic Queue Challenge](https://wooble.io)
+MIT © 2026 · Built for the [Wooble Clinic Queue Challenge](https://wooble.org/hackathon/queue-cure-26)

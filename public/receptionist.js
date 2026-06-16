@@ -248,11 +248,10 @@ function addPatient(e) {
   socket.emit('add_patient', { name, phone: document.getElementById('input-phone').value.trim() });
   document.getElementById('add-patient-form').reset();
 }
-function addAndCall() {
+function addEmergency() {
   const name = document.getElementById('input-name').value.trim();
   if (!name) { showToast('Patient name is required', 'error'); return; }
-  pendingAddAndCall = true;
-  socket.emit('add_patient', { name, phone: document.getElementById('input-phone').value.trim() });
+  socket.emit('add_emergency', { name, phone: document.getElementById('input-phone').value.trim() });
   document.getElementById('add-patient-form').reset();
 }
 function callNext()             { socket.emit('call_next'); }

@@ -168,8 +168,8 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--b
 .form-actions { display: flex; gap: 8px; }
 .btn-add { flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--blue); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; transition: all var(--tr); }
 .btn-add:hover { background: var(--blue-dark); }
-.btn-add-call { padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--teal); background: var(--teal-lt); color: var(--teal); font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all var(--tr); }
-.btn-add-call:hover { background: #99f6e4; }
+.btn-emergency { padding: 10px 12px; border-radius: 8px; border: 1.5px solid #fca5a5; background: var(--red-lt); color: var(--red); font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all var(--tr); }
+.btn-emergency:hover { background: #fca5a5; color: #b91c1c; }
 
 .token-confirm { margin-top: 10px; padding: 9px 13px; border-radius: 8px; background: var(--green-lt); border: 1px solid #bbf7d0; font-size: 12px; font-weight: 600; color: var(--green); animation: slide-in 0.3s ease; }
 @keyframes slide-in { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
