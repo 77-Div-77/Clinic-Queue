@@ -12,18 +12,25 @@
 <body>
 
   <aside class="sidebar">
-    <div class="sidebar-logo">
+    <div class="sidebar-logo" onclick="window.location.href='receptionist.html'" style="cursor:pointer;">
       <span class="sl-icon">🏥</span>
       <div><div class="sl-name">ClinicQ</div><div class="sl-role">Receptionist Panel</div></div>
     </div>
     <nav class="sidebar-nav">
-      <div class="snav-label">Queue</div>
-      <a href="#" class="snav-item active" id="nav-dash"><span class="snav-icon">⚡</span> Dashboard</a>
-      <a href="#" class="snav-item" id="nav-hist" onclick="showDonePanel()"><span class="snav-icon">📋</span> Today's History <span class="snav-count" id="snav-done-count">0</span></a>
-      <div class="snav-label">Settings</div>
-      <a href="#" class="snav-item" id="nav-sett" onclick="showSettingsPanel()"><span class="snav-icon">⚙️</span> Avg Consult Time</a>
-      <a href="/patient.html" class="snav-item" target="_blank"><span class="snav-icon">📱</span> Patient View ↗</a>
+      <a href="receptionist.html" class="snav-item active" id="nav-dash">
+        <span class="snav-icon">◱</span> Dashboard
+      </a>
+      <a href="history.html" class="snav-item" id="nav-history">
+        <span class="snav-icon">◴</span> History <span class="snav-badge" id="snav-done-count">0</span>
+      </a>
+      <a href="patients.html" class="snav-item" id="nav-patients">
+        <span class="snav-icon">👥</span> Patients
+      </a>
+      <a href="/patient.html" target="_blank" class="snav-item" id="nav-patient-view">
+        <span class="snav-icon">📱</span> Patient View
+      </a>
       <a href="/" class="snav-item"><span class="snav-icon">🏠</span> Back to Home</a>
+      <a href="#" onclick="signOut()" class="snav-item" style="color:#fca5a5;"><span class="snav-icon">🔓</span> Sign Out</a>
     </nav>
     <div class="sidebar-footer">
       <div class="sf-conn">
@@ -36,8 +43,9 @@
 
   <div class="main-wrap">
     <header class="topbar">
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span class="topbar-title">Queue Dashboard</span>
+      <div class="topbar-title">
+        <button id="sidebar-toggle" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--text);">&#9776;</button>
+        Queue Dashboard
         <span class="topbar-date" id="topbar-date"></span>
       </div>
       <div class="topbar-right">
@@ -110,10 +118,24 @@
             </div>
             <div class="form-actions">
               <button type="submit" class="btn-add">Assign Token</button>
+              <button type="button" class="btn-quick" onclick="addQuickConsult()">⚡ Quick Consult</button>
               <button type="button" class="btn-emergency" onclick="addEmergency()">🚨 Emergency</button>
             </div>
           </form>
           <div id="token-confirm" class="token-confirm hidden"></div>
+        </div>
+
+        <!-- Avg Consultation Time -->
+        <div class="card">
+          <div class="card-title"><span class="card-title-dot"></span> Avg Consultation Time</div>
+          <div class="slider-wrap">
+            <input type="range" id="avg-slider" min="1" max="60" value="10" step="1" oninput="onSliderInput(this.value)" />
+            <div class="slider-val">
+              <input type="number" id="avg-input" min="1" max="120" value="10" onchange="setAvgTime(this.value)" />
+              <span class="slider-unit">min</span>
+            </div>
+          </div>
+          <p class="settings-label" id="settings-note">Using manually set value. Real data will override after 2+ consultations complete.</p>
         </div>
 
       </div>
@@ -145,8 +167,8 @@
             <table class="queue-table">
               <thead>
                 <tr>
-                  <th>#</th><th>Token</th><th>Patient</th>
-                  <th>Check-in</th><th>Est. Wait</th><th></th>
+                  <th style="width:30px;"></th><th>#</th><th>Token</th><th>Patient</th><th>Meetings</th>
+                  <th>Check-in</th><th>Est. Wait</th><th style="text-align:right;">Actions</th>
                 </tr>
               </thead>
               <tbody id="queue-tbody"></tbody>
@@ -157,29 +179,19 @@
               <div class="qe-sub">Add the first patient using the form</div>
             </div>
           </div>
-        </div>
-
-        <!-- Settings Panel (hidden) -->
-        <div id="settings-panel" class="card hidden">
-          <div class="panel-head">
-            <div class="card-title" style="margin:0"><span class="card-title-dot"></span> Avg Consultation Time</div>
-            <button class="panel-close" onclick="hidePanels()">✕ Close</button>
-          </div>
-          <div class="slider-wrap">
-            <input type="range" id="avg-slider" min="1" max="60" value="10" step="1" oninput="onSliderInput(this.value)" />
-            <div class="slider-val">
-              <input type="number" id="avg-input" min="1" max="120" value="10" onchange="setAvgTime(this.value)" />
-              <span class="slider-unit">min</span>
+        <!-- Recent Consultations -->
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="card-title-dot" style="background:var(--green)"></span> Recent Consultations
             </div>
-          </div>
-          <p class="settings-label" id="settings-note">Using manually set value. Real data will override after 2+ consultations complete.</p>
-        </div>
-
-        <!-- Done Panel (hidden) -->
-        <div id="done-panel" class="card hidden">
-          <div class="panel-head">
-            <div class="card-title" style="margin:0"><span class="card-title-dot" style="background:var(--green)"></span> Completed Today</div>
-            <button class="panel-close" onclick="hidePanels()">✕ Close</button>
+            <select id="history-filter" class="form-input" style="width: auto; padding: 4px 8px; font-size: 11px; font-weight: 600;" onchange="updateHistoryLimit()">
+              <option value="5">Last 5</option>
+              <option value="10" selected>Last 10</option>
+              <option value="50">Last 50</option>
+              <option value="100">Last 100</option>
+              <option value="all">All Today</option>
+            </select>
           </div>
           <div id="done-list" class="done-list"></div>
         </div>
@@ -189,7 +201,18 @@
   </div>
 
   <div id="toast-container" class="toast-container"></div>
+  <script>
+    // Auth guard
+    if (sessionStorage.getItem('rcp_auth') !== '1') {
+      window.location.replace('/?signin=1');
+    }
+    function signOut() {
+      sessionStorage.removeItem('rcp_auth');
+      window.location.href = '/';
+    }
+  </script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <script src="receptionist.js"></script>
 </body>
 </html>

@@ -6,30 +6,24 @@ let pendingAddAndCall = false;
 let undoTimer = null;
 let consultTimerInterval = null;
 let currentState = null;
+let timeOffset = 0;
 let avgDebounce = null;
 let searchFilter = '';
+let currentHistoryDate = new Date().toISOString().split('T')[0]; // today
+let sortableInstance = null;
 
-// ── SIDEBAR PANELS ───────────────────────────────────────────
-function showDonePanel() {
-  document.getElementById('done-panel').classList.remove('hidden');
-  document.getElementById('settings-panel').classList.add('hidden');
-  setNav('nav-hist');
-}
-function showSettingsPanel() {
-  document.getElementById('settings-panel').classList.remove('hidden');
-  document.getElementById('done-panel').classList.add('hidden');
-  setNav('nav-sett');
-}
-function hidePanels() {
-  document.getElementById('settings-panel').classList.add('hidden');
-  document.getElementById('done-panel').classList.add('hidden');
-  setNav('nav-dash');
-}
-function setNav(id) {
-  document.querySelectorAll('.snav-item').forEach(el => el.classList.remove('active'));
-  const el = document.getElementById(id);
-  if (el) el.classList.add('active');
-}
+// ── SIDEBAR TOGGLE ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('sidebar-toggle');
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      document.querySelector('.sidebar')?.classList.toggle('collapsed');
+      document.querySelector('.main-wrap')?.classList.toggle('collapsed');
+    });
+  }
+});
+
+// Navigation is now handled by standard HTML links in the sidebar
 
 // ── CONNECTION ───────────────────────────────────────────────
 const sfDot  = document.getElementById('sf-dot');
@@ -46,9 +40,14 @@ socket.on('connect_error', () => {
 
 // ── MAIN STATE ───────────────────────────────────────────────
 socket.on('queue_update', (data) => {
+  if (data.serverTime) timeOffset = data.serverTime - Date.now();
   currentState = data;
   renderAll(data);
   if (pendingAddAndCall) { pendingAddAndCall = false; socket.emit('call_next'); }
+  // Render today's done history on every update
+  if (data.done) {
+    renderDoneList(data.done, true);
+  }
 });
 socket.on('error_event', (data) => showToast(data.message, 'error'));
 socket.on('patient_added', (data) => {
@@ -67,7 +66,6 @@ function renderAll(data) {
   renderCallButton(data);
   renderInConsult(data);
   renderQueue(data);
-  renderDone(data);
   renderSettings(data);
   renderUndo(data);
 }
@@ -104,8 +102,9 @@ function renderToken(data) {
   if (data.inConsultation?.length > 0) {
     const p = data.inConsultation[0];
     nameEl.textContent = p.name + (p.phone ? ` · ${p.phone}` : '');
+    if (p.isEmergency) nameEl.innerHTML += ` <span style="color:var(--red)">[Emergency]</span>`;
     progressWrap.style.display = 'block';
-    startConsultTimer(data.consultStartTime, data.avgConsultMinutes);
+    startConsultTimer(p, data.avgConsultMinutes);
   } else {
     nameEl.textContent = 'No patient in consultation';
     timerEl.textContent = '';
@@ -114,15 +113,24 @@ function renderToken(data) {
   }
 }
 
-function startConsultTimer(startTime, avgMin) {
+function startConsultTimer(patient, avgMin) {
   clearInterval(consultTimerInterval);
-  if (!startTime) return;
-  const avgMs = avgMin * 60000;
+  const startTime = new Date(patient.consultStartTime).getTime();
+  if (!startTime && !patient.liveElapsedMs) return;
+  
+  const allottedMin = patient.isEmergency ? 10 : (patient.isQuickConsult ? 2 : avgMin);
+  const avgMs = allottedMin * 60000;
   const timerEl = document.getElementById('token-timer');
   const bar = document.getElementById('token-progress-bar');
 
   consultTimerInterval = setInterval(() => {
-    const elapsed = Date.now() - startTime;
+    // Current elapsed = previously accumulated (from DB/state) + time since current segment started
+    const adjustedNow = Date.now() + timeOffset;
+    let elapsed = patient.elapsedMs || 0;
+    if (patient.consultStartTime) {
+        elapsed += (adjustedNow - new Date(patient.consultStartTime).getTime());
+    }
+
     const remaining = avgMs - elapsed;
     const pct = Math.min(100, (elapsed / avgMs) * 100);
     bar.style.width = pct + '%';
@@ -165,7 +173,10 @@ function renderQueue(data) {
   const tbody = document.getElementById('queue-tbody');
   const sub   = document.getElementById('queue-sub');
   const empty = document.getElementById('queue-empty');
-  document.getElementById('snav-done-count').textContent = data.done?.length || 0;
+  
+  // Try to update history count safely if element exists
+  const histCount = document.getElementById('snav-done-count');
+  if(histCount) histCount.textContent = data.done?.length || 0;
 
   sub.textContent = `${data.waitingCount} patient${data.waitingCount !== 1 ? 's' : ''} waiting`;
 
@@ -178,40 +189,103 @@ function renderQueue(data) {
 
   tbody.innerHTML = data.queue.map((p, idx) => {
     const isNext = idx === 0;
-    const waitLabel = p.estimatedWaitMin <= 1 ? '🟢 Next' : `~${p.estimatedWaitMin} min`;
-    const waitCls = isNext ? 'next' : p.estimatedWaitMin <= 10 ? 'short' : 'long';
+    const isEmergency = p.status === 'waiting-emergency';
+    const isQuick = p.status === 'quick-consult';
+    const isOnHold = p.status === 'on-hold';
+    
+    let waitLabel = `~${Math.max(0, p.estimatedWaitMin)} min`;
+    let waitCls = p.estimatedWaitMin <= 10 ? 'short' : 'long';
+    let badgeCls = '';
+    let nameTag = '';
+    
+    if (isEmergency) {
+        waitCls = 'emergency'; badgeCls = 'emergency';
+        nameTag = ' <span style="color:var(--red); font-size:10px; font-weight:700; text-transform:uppercase;">[Emergency]</span>';
+    } else if (isQuick) {
+        waitCls = 'quick-consult'; badgeCls = 'quick-consult';
+        nameTag = ' <span style="color:#0284c7; font-size:10px; font-weight:700; text-transform:uppercase;">[Quick Consult]</span>';
+    } else if (isOnHold) {
+        waitCls = 'on-hold'; badgeCls = 'on-hold';
+        nameTag = ' <span style="color:var(--amber); font-size:10px; font-weight:700; text-transform:uppercase;">[On Hold]</span>';
+    } else if (isNext) {
+        waitCls = 'next'; badgeCls = 'next';
+    }
+
     const filtered = searchFilter && !p.name.toLowerCase().includes(searchFilter) ? 'filtered' : '';
     return `
       <tr data-token="${p.token}" class="${filtered}">
+        <td><div class="drag-handle">☰</div></td>
         <td><span class="pos-num">${idx + 1}</span></td>
-        <td><div class="tkn-badge ${isNext ? 'next' : ''}">${p.token}</div></td>
+        <td><div class="tkn-badge ${badgeCls}">${p.token}</div></td>
         <td>
-          <div class="pt-name">${escHtml(p.name)}</div>
+          <div class="pt-name">${escHtml(p.name)}${nameTag}</div>
           ${p.phone ? `<div class="pt-phone">📞 ${escHtml(p.phone)}</div>` : ''}
         </td>
+        <td><span style="font-weight:700">${p.meetingsToday || 1}</span></td>
         <td><span class="time-txt">${formatTime(p.checkInTime)}</span></td>
         <td><span class="wait-chip ${waitCls}">${waitLabel}</span></td>
-        <td><button class="btn-remove" onclick="removePatient(${p.token})">✕</button></td>
+        <td style="text-align:right;">
+          <button class="btn-swap" onclick="swapConsultation(${p.token})" title="Swap with active consultation">Swap</button>
+          <button class="btn-remove" onclick="removePatient(${p.token})">✕</button>
+        </td>
       </tr>`;
   }).join('');
+  
+  if (!sortableInstance) {
+    sortableInstance = new Sortable(tbody, {
+      handle: '.drag-handle',
+      animation: 150,
+      onEnd: function() {
+        const rows = Array.from(tbody.querySelectorAll('tr[data-token]'));
+        const orderedTokens = rows.map(r => parseInt(r.dataset.token, 10));
+        socket.emit('reorder_queue', { orderedTokens });
+      }
+    });
+  }
 }
 
-function renderDone(data) {
+function loadHistoryDate(dateStr) {
+  currentHistoryDate = dateStr;
+  socket.emit('get_history', { date: dateStr }, (res) => {
+    renderDoneList(res.done, dateStr === new Date().toISOString().split('T')[0]);
+  });
+}
+
+let historyLimit = 10;
+function updateHistoryLimit() {
+  const val = document.getElementById('history-filter').value;
+  historyLimit = val === 'all' ? Infinity : parseInt(val, 10);
+  if (currentState && currentState.done) renderDoneList(currentState.done, currentHistoryDate === new Date().toISOString().split('T')[0]);
+}
+
+function renderDoneList(doneArray, isToday) {
   const list = document.getElementById('done-list');
-  if (!data.done?.length) {
-    list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:4px">No completions yet today.</div>';
+  if (!doneArray?.length) {
+    list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:4px">No completions found.</div>';
     return;
   }
-  list.innerHTML = [...data.done].reverse().map(p => {
-    const dur = p.consultStartTime && p.consultEndTime
-      ? Math.round((new Date(p.consultEndTime) - new Date(p.consultStartTime)) / 60000) : null;
+  
+  // Make a shallow copy and reverse for UI
+  const displayArray = [...doneArray];
+  if (isToday && currentState?.done === doneArray) displayArray.reverse();
+
+  const limitedArray = displayArray.slice(0, historyLimit);
+
+  list.innerHTML = limitedArray.map(p => {
+    // Determine exact elapsed time
+    const elapsed = p.elapsedMs || 0;
+    const durStr = elapsed > 0 ? formatExactTime(elapsed) + ' · ' : '';
+    const btnHtml = isToday ? `<button class="btn-call-again" onclick="quickConsult(${p.token})">🔄 Call Again</button>` : '';
+
     return `<div class="done-row">
       <span class="done-tkn">#${p.token}</span>
-      <span class="done-name">${escHtml(p.name)}</span>
-      <span class="done-meta">${dur != null ? dur + ' min · ' : ''}${formatTime(p.consultEndTime)}</span>
+      <div class="done-name">${escHtml(p.name)} <div class="done-meta">${durStr}${formatTime(p.consultEndTime)}</div></div>
+      ${btnHtml}
     </div>`;
   }).join('');
 }
+
+// Patients rendering moved to standalone patients.js
 
 function renderSettings(data) {
   const note   = document.getElementById('settings-note');
@@ -249,15 +323,21 @@ function addPatient(e) {
   document.getElementById('add-patient-form').reset();
 }
 function addEmergency() {
-  const name = document.getElementById('input-name').value.trim();
-  if (!name) { showToast('Patient name is required', 'error'); return; }
-  socket.emit('add_emergency', { name, phone: document.getElementById('input-phone').value.trim() });
-  document.getElementById('add-patient-form').reset();
+  const name = document.getElementById('input-name').value;
+  const phone = document.getElementById('input-phone').value;
+  if (name) socket.emit('add_emergency', { name, phone });
 }
+function addQuickConsult() {
+  const name = document.getElementById('input-name').value;
+  const phone = document.getElementById('input-phone').value;
+  if (name) socket.emit('add_quick_consult', { name, phone });
+}
+function quickConsult(token)    { socket.emit('quick_consult', { token }); showToast('Quick Consult added', 'success'); }
 function callNext()             { socket.emit('call_next'); }
 function undoCall()             { socket.emit('undo_call'); clearInterval(undoTimer); document.getElementById('btn-undo').classList.add('hidden'); showToast('Last call undone', 'info'); }
 function markDone(token)        { socket.emit('mark_done', { token }); }
 function removePatient(token)   { socket.emit('remove_patient', { token }); }
+function swapConsultation(token){ socket.emit('swap_consultation', { token }); showToast('Swapped consultation', 'info'); }
 
 function filterQueue(val) {
   searchFilter = val.toLowerCase();
@@ -304,4 +384,9 @@ function showToast(msg, type = 'info') {
 // ── HELPERS ──────────────────────────────────────────────────
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function formatTime(iso) { if (!iso) return '—'; const d = new Date(iso); return [d.getHours(), d.getMinutes()].map(n => String(n).padStart(2,'0')).join(':'); }
+function formatExactTime(ms) { 
+  const m = Math.floor(ms / 60000); 
+  const s = Math.floor((ms % 60000) / 1000); 
+  return `${m}m ${s}s`; 
+}
 document.getElementById('input-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('add-patient-form').requestSubmit(); }});
