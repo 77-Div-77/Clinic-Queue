@@ -1,6 +1,5 @@
 // ============================================================
-//  PATIENT WAITING ROOM — Client JavaScript
-//  Live queue display via Socket.IO — zero page refreshes
+//  PATIENT WAITING ROOM v2 — Client JS
 // ============================================================
 
 const socket = io();
@@ -10,55 +9,49 @@ let heroTimerInterval = null;
 let alertShown = false;
 let lookupDebounce = null;
 
-// ── Connection ───────────────────────────────────────────────
-const connDot = document.querySelector('.conn-live-dot');
-const connLabel = document.getElementById('conn-label');
+// ── CONNECTION ───────────────────────────────────────────────
+const connEl = document.getElementById('conn-indicator');
+const connText = document.getElementById('conn-text');
 
 socket.on('connect', () => {
-  connDot.className = 'conn-live-dot online';
-  connLabel.textContent = 'Live';
+  connEl.className = 'conn-indicator conn-online';
+  connText.textContent = 'Live';
 });
 socket.on('disconnect', () => {
-  connDot.className = 'conn-live-dot offline';
-  connLabel.textContent = 'Reconnecting…';
+  connEl.className = 'conn-indicator conn-offline';
+  connText.textContent = 'Reconnecting…';
 });
 
-// ── Main live update ─────────────────────────────────────────
+// ── MAIN UPDATE ──────────────────────────────────────────────
 socket.on('queue_update', (data) => {
   currentState = data;
   renderHero(data);
   renderStats(data);
-  renderWaitingList(data);
-  checkMyTokenAlert(data);
+  renderQueue(data);
   updateLastUpdated();
-
-  // Re-run lookup if user has a token entered
-  if (myToken !== null) {
-    doLookup(myToken, data);
-  }
+  if (myToken !== null) doLookup(myToken, data);
+  checkSoonAlert(data);
 });
 
-// ── HERO: NOW SERVING ────────────────────────────────────────
+// ── HERO ─────────────────────────────────────────────────────
 function renderHero(data) {
-  const heroEl = document.getElementById('hero-token');
-  const subEl = document.getElementById('hero-subtitle');
+  const el = document.getElementById('hero-token');
+  const sub = document.getElementById('hero-sub');
 
   const newVal = data.currentToken > 0 ? String(data.currentToken) : '—';
-  if (heroEl.textContent !== newVal) {
-    heroEl.textContent = newVal;
-    heroEl.classList.remove('flip');
-    void heroEl.offsetWidth;
-    heroEl.classList.add('flip');
+  if (el.textContent !== newVal) {
+    el.textContent = newVal;
+    el.classList.remove('flip');
+    void el.offsetWidth;
+    el.classList.add('flip');
   }
 
-  if (data.currentToken > 0 && data.inConsultation && data.inConsultation.length > 0) {
-    subEl.textContent = 'In consultation right now';
+  if (data.currentToken > 0 && data.inConsultation?.length > 0) {
+    sub.textContent = 'In consultation right now';
     startHeroTimer(data.consultStartTime, data.avgConsultMinutes);
-  } else if (data.currentToken === 0) {
-    subEl.textContent = 'Waiting for first patient to be called';
+  } else if (!data.currentToken) {
+    sub.textContent = 'Waiting for first patient to be called';
     stopHeroTimer();
-  } else {
-    subEl.textContent = 'Consultation in progress';
   }
 }
 
@@ -66,56 +59,53 @@ function startHeroTimer(startTime, avgMin) {
   stopHeroTimer();
   if (!startTime) return;
   const avgMs = avgMin * 60000;
-  const timerEl = document.getElementById('hero-timer');
-
+  const el = document.getElementById('hero-timer');
   heroTimerInterval = setInterval(() => {
     const elapsed = Date.now() - startTime;
-    const remaining = avgMs - elapsed;
-    if (remaining > 0) {
-      const m = Math.floor(remaining / 60000);
-      const s = Math.floor((remaining % 60000) / 1000);
-      timerEl.textContent = `⏱ Approx. ${m}m ${s}s remaining`;
+    const rem = avgMs - elapsed;
+    if (rem > 0) {
+      const m = Math.floor(rem / 60000);
+      const s = Math.floor((rem % 60000) / 1000);
+      el.textContent = `⏱ Approx. ${m}m ${s}s remaining`;
+      el.style.color = rem < 60000 ? '#f87171' : 'var(--teal)';
     } else {
-      const over = Math.abs(remaining);
+      const over = Math.abs(rem);
       const m = Math.floor(over / 60000);
       const s = Math.floor((over % 60000) / 1000);
-      timerEl.textContent = `Wrapping up (${m}m ${s}s over)`;
+      el.textContent = `Wrapping up (${m}m ${s}s over)`;
+      el.style.color = '#f97316';
     }
   }, 1000);
 }
-
 function stopHeroTimer() {
   clearInterval(heroTimerInterval);
   document.getElementById('hero-timer').textContent = '';
 }
 
-// ── STATS ────────────────────────────────────────────────────
+// ── STATS ─────────────────────────────────────────────────────
 function renderStats(data) {
-  setStatVal('qs-waiting', data.waitingCount);
-  setStatVal('qs-served', data.totalServed);
-  setStatVal('qs-avg', data.effectiveAvgMinutes);
+  setVal('sp-waiting', data.waitingCount);
+  setVal('sp-served',  data.totalServed);
+  setVal('sp-avg',     data.effectiveAvgMinutes);
 }
-
-function setStatVal(id, val) {
+function setVal(id, val) {
   const el = document.getElementById(id);
-  if (!el) return;
-  if (el.textContent !== String(val)) {
-    el.textContent = val;
-    el.classList.remove('pop');
-    void el.offsetWidth;
-    el.classList.add('pop');
-  }
+  if (!el || el.textContent === String(val)) return;
+  el.textContent = val;
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
 }
 
-// ── WAITING LIST ─────────────────────────────────────────────
-function renderWaitingList(data) {
+// ── QUEUE ─────────────────────────────────────────────────────
+function renderQueue(data) {
   const list = document.getElementById('waiting-list');
-
-  if (!data.queue || data.queue.length === 0) {
+  if (!data.queue?.length) {
     list.innerHTML = `
       <div class="wl-empty">
-        <div class="wl-empty-icon">☕</div>
-        <div>No one waiting right now</div>
+        <div class="wle-icon">☕</div>
+        <div class="wle-text">No one waiting right now</div>
+        <div class="wle-sub">Check back soon</div>
       </div>`;
     return;
   }
@@ -124,35 +114,32 @@ function renderWaitingList(data) {
     const isNext = idx === 0;
     const isMine = myToken !== null && p.token === myToken;
     const waitLabel = p.estimatedWaitMin <= 1 ? 'Next!' : `~${p.estimatedWaitMin}`;
-    const waitUnit = p.estimatedWaitMin <= 1 ? '' : 'min';
-    const waitClass = p.estimatedWaitMin <= 5 ? 'wl-wait--short' :
-                      isNext ? 'wl-wait--next' : '';
+    const waitUnit  = p.estimatedWaitMin <= 1 ? '' : 'min';
+    const waitCls = isNext ? 'wl-wait--next' : p.estimatedWaitMin <= 8 ? 'wl-wait--short' : 'wl-wait--long';
 
     return `
-      <div class="wl-item${isNext ? ' wl-item--next' : ''}${isMine ? ' wl-item--my' : ''}" data-token="${p.token}">
-        <div class="wl-position">${idx + 1}</div>
-        <div class="wl-token${isNext ? ' wl-token--next' : ''}${isMine ? ' wl-token--my' : ''}">
-          ${p.token}
-        </div>
+      <div class="wl-item${isNext ? ' wl-item--next' : ''}${isMine ? ' wl-item--mine' : ''}" data-token="${p.token}">
+        <div class="wl-pos">${idx + 1}</div>
+        <div class="wl-token${isNext ? ' wl-token--next' : ''}${isMine ? ' wl-token--mine' : ''}">${p.token}</div>
         <div class="wl-info">
-          <div class="wl-token-label">
+          <div class="wl-info-top">
             Token #${p.token}
-            ${isMine ? ' <span style="color:#93c5fd;font-size:10px">← You</span>' : ''}
-            ${isNext ? ' <span style="color:var(--green);font-size:10px">● Next</span>' : ''}
+            ${isMine ? '<span class="wl-mine-badge">← You</span>' : ''}
+            ${isNext && !isMine ? '<span class="wl-next-badge">● Next</span>' : ''}
           </div>
-          <div class="wl-status-text">
+          <div class="wl-info-sub">
             ${p.tokensAhead === 0 ? 'You are next in line!' : `${p.tokensAhead} patient${p.tokensAhead > 1 ? 's' : ''} ahead`}
           </div>
         </div>
-        <div class="wl-wait ${waitClass}">
-          <div class="wl-wait-num">${waitLabel}</div>
+        <div class="wl-wait ${waitCls}">
+          <div class="wl-wait-val">${waitLabel}</div>
           <div class="wl-wait-unit">${waitUnit}</div>
         </div>
       </div>`;
   }).join('');
 }
 
-// ── TOKEN LOOKUP ─────────────────────────────────────────────
+// ── TOKEN LOOKUP ──────────────────────────────────────────────
 function lookupMyToken(val) {
   const token = parseInt(val);
   if (isNaN(token) || token < 1) {
@@ -160,86 +147,59 @@ function lookupMyToken(val) {
     document.getElementById('my-status-card').classList.add('hidden');
     return;
   }
-
   clearTimeout(lookupDebounce);
   lookupDebounce = setTimeout(() => {
     myToken = token;
-    if (currentState) {
-      doLookup(token, currentState);
-    } else {
-      socket.emit('lookup_token', { token });
-    }
+    if (currentState) doLookup(token, currentState);
+    else socket.emit('lookup_token', { token });
   }, 300);
 }
 
 function doLookup(token, data) {
   const card = document.getElementById('my-status-card');
-  card.className = 'my-status'; // reset classes
-
-  // Check in waiting list
-  const inWaiting = data.queue ? data.queue.find(p => p.token === token) : null;
-  const inConsult = data.inConsultation ? data.inConsultation.find(p => p.token === token) : null;
-  const done = data.done ? data.done.find(p => p.token === token) : null;
+  const inWaiting = data.queue?.find(p => p.token === token);
+  const inConsult = data.inConsultation?.find(p => p.token === token);
+  const done = data.done?.find(p => p.token === token);
 
   if (inConsult) {
-    card.className = 'my-status in-consult';
+    card.className = 'status-card in-consult';
     card.innerHTML = `
-      <div class="status-token">Token #${token}</div>
-      <div class="status-line">🟢 You are currently being seen by the doctor!</div>`;
-    card.classList.remove('hidden');
+      <div class="sc-token">Token #${token}</div>
+      <div class="sc-line">🟢 You are currently being seen by the doctor!</div>`;
   } else if (inWaiting) {
     const isNext = inWaiting.tokensAhead === 0;
-    card.className = `my-status ${isNext ? 'next' : 'waiting'}`;
+    card.className = `status-card ${isNext ? 'next' : 'waiting'}`;
     card.innerHTML = `
-      <div class="status-token">Token #${token}</div>
-      <div class="status-line">
-        ${isNext ? '🟢 You are next! Please be ready.' : `⏳ ${inWaiting.tokensAhead} patient${inWaiting.tokensAhead > 1 ? 's' : ''} ahead of you`}
-      </div>
-      <div class="status-wait">
-        ${inWaiting.estimatedWaitMin <= 1 ? 'Any moment now' : `~${inWaiting.estimatedWaitMin} min wait`}
-      </div>`;
-    card.classList.remove('hidden');
+      <div class="sc-token">Token #${token}</div>
+      <div class="sc-line">${isNext ? '🟢 You are next! Please be ready.' : `⏳ ${inWaiting.tokensAhead} patient${inWaiting.tokensAhead > 1 ? 's' : ''} ahead of you`}</div>
+      <div class="sc-wait">${inWaiting.estimatedWaitMin <= 1 ? 'Any moment now' : `~${inWaiting.estimatedWaitMin} min wait`}</div>`;
   } else if (done) {
-    card.className = 'my-status done';
-    card.innerHTML = `
-      <div class="status-token">Token #${token}</div>
-      <div class="status-line">✅ Your consultation is complete. Thank you!</div>`;
-    card.classList.remove('hidden');
+    card.className = 'status-card done';
+    card.innerHTML = `<div class="sc-token">Token #${token}</div><div class="sc-line">✅ Your consultation is complete. Thank you!</div>`;
   } else {
-    card.className = 'my-status not-found';
-    card.innerHTML = `
-      <div class="status-token">#${token}</div>
-      <div class="status-line">Token not found in today's queue. Please check with reception.</div>`;
-    card.classList.remove('hidden');
+    card.className = 'status-card not-found';
+    card.innerHTML = `<div class="sc-token">#${token}</div><div class="sc-line">Token not found in today's queue. Please check with reception.</div>`;
   }
+  card.classList.remove('hidden');
 }
 
-// ── SOON ALERT ───────────────────────────────────────────────
-function checkMyTokenAlert(data) {
+// ── SOON ALERT ────────────────────────────────────────────────
+function checkSoonAlert(data) {
   if (!myToken || alertShown) return;
-
-  const myPos = data.queue ? data.queue.find(p => p.token === myToken) : null;
-  if (myPos && myPos.tokensAhead <= 1) {
-    showSoonAlert();
-  }
+  const pos = data.queue?.find(p => p.token === myToken);
+  if (pos && pos.tokensAhead <= 1) { alertShown = true; showSoonAlert(); }
 }
-
 function showSoonAlert() {
-  alertShown = true;
   document.getElementById('soon-alert').classList.remove('hidden');
-  // Auto-dismiss after 8 seconds
-  setTimeout(dismissAlert, 8000);
+  setTimeout(dismissAlert, 9000);
 }
-
 function dismissAlert() {
   document.getElementById('soon-alert').classList.add('hidden');
 }
 
-// ── LAST UPDATED ─────────────────────────────────────────────
+// ── LAST UPDATED ──────────────────────────────────────────────
 function updateLastUpdated() {
   const d = new Date();
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  document.getElementById('last-update').textContent = `Last updated: ${h}:${m}:${s}`;
+  const t = [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2,'0')).join(':');
+  document.getElementById('last-update').textContent = `Updated ${t}`;
 }
