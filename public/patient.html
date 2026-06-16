@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicQ — Patient Waiting Room</title>
+  <meta name="description" content="Check your token number, see how many patients are ahead, and get live estimated wait times — no page refresh needed." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="patient.css" />
+</head>
+<body>
+
+  <!-- ── BACKGROUND PARTICLES ─────────────────────────────── -->
+  <div class="bg-particles" aria-hidden="true">
+    <div class="particle"></div><div class="particle"></div>
+    <div class="particle"></div><div class="particle"></div>
+    <div class="particle"></div>
+  </div>
+
+  <!-- ── HEADER ────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">🏥</span>
+      <span class="logo-text">ClinicQ</span>
+    </div>
+    <div id="conn-status" class="conn-dot-wrap">
+      <span class="conn-live-dot"></span>
+      <span id="conn-label" class="conn-live-label">Connecting…</span>
+    </div>
+  </header>
+
+  <!-- ── MAIN HERO: NOW SERVING ────────────────────────────── -->
+  <section class="hero-section">
+    <div class="hero-label">Now Serving</div>
+    <div class="hero-token" id="hero-token">—</div>
+    <div class="hero-subtitle" id="hero-subtitle">Waiting for first patient to be called</div>
+    <div class="hero-timer" id="hero-timer"></div>
+  </section>
+
+  <!-- ── MY TOKEN LOOKUP ────────────────────────────────────── -->
+  <section class="lookup-section">
+    <div class="lookup-card">
+      <h2 class="lookup-title">Check Your Token</h2>
+      <div class="lookup-form">
+        <input
+          id="my-token-input"
+          type="number"
+          min="1"
+          max="999"
+          placeholder="Enter your token number"
+          oninput="lookupMyToken(this.value)"
+        />
+      </div>
+      <div id="my-status-card" class="my-status hidden"></div>
+    </div>
+  </section>
+
+  <!-- ── QUEUE STATUS BAR ───────────────────────────────────── -->
+  <section class="queue-stats">
+    <div class="q-stat">
+      <div class="q-stat-value" id="qs-waiting">0</div>
+      <div class="q-stat-label">Waiting</div>
+    </div>
+    <div class="q-stat q-stat--green">
+      <div class="q-stat-value" id="qs-served">0</div>
+      <div class="q-stat-label">Served Today</div>
+    </div>
+    <div class="q-stat q-stat--teal">
+      <div class="q-stat-value" id="qs-avg">—</div>
+      <div class="q-stat-label">Avg Visit (min)</div>
+    </div>
+  </section>
+
+  <!-- ── WAITING LIST ───────────────────────────────────────── -->
+  <section class="waiting-list-section">
+    <h2 class="wl-title">Queue at a Glance</h2>
+    <div id="waiting-list" class="waiting-list">
+      <div class="wl-empty">
+        <div class="wl-empty-icon">☕</div>
+        <div>No one waiting right now</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ALERT OVERLAY ─────────────────────────────────────── -->
+  <div id="soon-alert" class="soon-alert hidden" onclick="dismissAlert()">
+    <div class="soon-alert-inner">
+      <div class="soon-alert-icon">🔔</div>
+      <div class="soon-alert-text">Your turn is coming soon!</div>
+      <div class="soon-alert-sub">Get ready — you're next in line.</div>
+      <div class="soon-alert-dismiss">Tap to dismiss</div>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ────────────────────────────────────────────── -->
+  <footer class="footer">
+    <span>Live queue updates · No refresh needed · </span>
+    <span id="last-update">Waiting for data…</span>
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="patient.js"></script>
+</body>
+</html>
