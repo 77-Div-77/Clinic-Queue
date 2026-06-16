@@ -1,7 +1,6 @@
 // =============================================================
 //  CLINIC QUEUE MANAGER — Main Server
 //  Stack: Express + Socket.IO + MongoDB (Mongoose)
-//  Falls back to pure in-memory if MongoDB is unavailable
 // =============================================================
 
 require('dotenv').config();
@@ -27,26 +26,44 @@ app.use(express.static(path.join(__dirname, '../public')));
 // ── In-memory state (single source of truth) ──────────────────
 let state = {
   sessionId: null,
-  queue: [],              // Array of patient objects (waiting + in-consultation)
-  currentToken: 0,        // Token currently being seen (0 = nobody yet)
-  nextTokenCounter: 1,    // Next token to assign
-  avgConsultMinutes: 10,  // Receptionist-configurable
-  consultDurations: [],   // Actual durations in ms for rolling average
+  queue: [],              
+  currentToken: 0,        
+  nextTokenCounter: 1,    
+  avgConsultMinutes: 10,  
+  consultDurations: [],   
   totalServed: 0,
-  consultStartTime: null, // When current consultation started
-  lastCallTime: null,     // For undo window
-  previousToken: 0,       // Token before last call (for undo)
+  consultStartTime: null, 
+  lastCallTime: null,     
+  previousToken: 0,       
+  patientsDirectory: {},  // Map: patientId -> { id, key, name, phone }
+  sessionDate: null
 };
+
+const STATUS_PRIORITY = {
+  'waiting-emergency': 1,
+  'quick-consult': 2,
+  'on-hold': 3,
+  'waiting': 4
+};
+
+function getPatientId(name, phone) {
+  const key = `${name.toLowerCase().trim()}|${(phone || '').trim()}`;
+  let found = Object.values(state.patientsDirectory).find(p => p.key === key);
+  if (found) return found.id;
+  const id = `PID-${Object.keys(state.patientsDirectory).length + 1001}`;
+  state.patientsDirectory[id] = { id, key, name: name.trim(), phone: phone ? phone.trim() : '' };
+  return id;
+}
 
 // ── Rolling average helper ─────────────────────────────────────
 function computeEffectiveAvgMs() {
   const { consultDurations, avgConsultMinutes } = state;
   if (consultDurations.length >= 2) {
-    const recent = consultDurations.slice(-10); // last 10 consultations max
+    const recent = consultDurations.slice(-10);
     const sum = recent.reduce((a, b) => a + b, 0);
-    return sum / recent.length; // divide by actual slice length — correct rolling avg
+    return sum / recent.length;
   }
-  return avgConsultMinutes * 60 * 1000; // fallback to manually set value
+  return avgConsultMinutes * 60 * 1000;
 }
 
 // ── Wait time computation (per patient, server-side) ──────────
@@ -54,19 +71,48 @@ function computeWaitTimes() {
   const effectiveAvgMs = computeEffectiveAvgMs();
   const now = Date.now();
 
-  // Time remaining for the patient currently in consultation
   let timeRemainingForCurrent = 0;
   if (state.consultStartTime && state.currentToken > 0) {
-    const elapsed = now - state.consultStartTime;
-    timeRemainingForCurrent = Math.max(0, effectiveAvgMs - elapsed);
+    const currentPat = state.queue.find(p => p.token === state.currentToken);
+    const elapsed = (currentPat ? (currentPat.elapsedMs || 0) : 0) + (now - state.consultStartTime);
+    
+    let allottedMs = effectiveAvgMs;
+    if (currentPat) {
+      if (currentPat.isEmergency) allottedMs = 10 * 60000;
+      else if (currentPat.isQuickConsult) allottedMs = 2 * 60000;
+    }
+    
+    timeRemainingForCurrent = Math.max(60000, allottedMs - elapsed); // Floor at 1 min
   }
 
-  let ahead = 0;
-  const waitingPatients = state.queue.filter(p => p.status === 'waiting');
+  let aheadTime = 0;
+  
+  const waitingPatients = state.queue
+    .filter(p => STATUS_PRIORITY[p.status])
+    .sort((a, b) => {
+      const pA = STATUS_PRIORITY[a.status];
+      const pB = STATUS_PRIORITY[b.status];
+      if (pA !== pB) return pA - pB;
+
+      const idxA = a.sortIndex !== null && a.sortIndex !== undefined ? a.sortIndex : 999999;
+      const idxB = b.sortIndex !== null && b.sortIndex !== undefined ? b.sortIndex : 999999;
+      if (idxA !== idxB) return idxA - idxB;
+
+      return new Date(a.checkInTime) - new Date(b.checkInTime);
+    });
 
   return waitingPatients.map((patient, idx) => {
-    const waitMs = timeRemainingForCurrent + (ahead * effectiveAvgMs);
-    ahead++;
+    const waitMs = timeRemainingForCurrent + aheadTime;
+    
+    const elapsed = patient.elapsedMs || 0;
+    
+    let allottedMs = effectiveAvgMs;
+    if (patient.isEmergency) allottedMs = 10 * 60000;
+    else if (patient.isQuickConsult || patient.status === 'quick-consult') allottedMs = 2 * 60000;
+    
+    const patRemaining = Math.max(60000, allottedMs - elapsed);
+    aheadTime += patRemaining;
+
     const waitMin = Math.ceil(waitMs / 60000);
     return {
       ...patient,
@@ -83,8 +129,13 @@ function buildBroadcastPayload() {
   const donePatients = state.queue.filter(p => p.status === 'done');
   const inConsult = state.queue.filter(p => p.status === 'in-consultation');
 
-  // Next token to be called
-  const nextPatient = state.queue.find(p => p.status === 'waiting');
+  // Update inConsult's elapsed time live for UI
+  const liveInConsult = inConsult.map(p => ({
+    ...p,
+    liveElapsedMs: (p.elapsedMs || 0) + (state.consultStartTime ? Date.now() - state.consultStartTime : 0)
+  }));
+
+  const nextPatient = enrichedWaiting[0];
 
   return {
     currentToken: state.currentToken,
@@ -92,17 +143,18 @@ function buildBroadcastPayload() {
     avgConsultMinutes: state.avgConsultMinutes,
     effectiveAvgMinutes: Math.round(effectiveAvgMs / 60000 * 10) / 10,
     consultStartTime: state.consultStartTime,
+    serverTime: Date.now(),
     totalServed: state.totalServed,
     waitingCount: enrichedWaiting.length,
     queue: enrichedWaiting,
-    inConsultation: inConsult,
+    inConsultation: liveInConsult,
     done: donePatients,
     canUndo: state.lastCallTime && (Date.now() - state.lastCallTime < 30000),
     sampleCount: state.consultDurations.length,
+    patientsDirectory: Object.values(state.patientsDirectory)
   };
 }
 
-// ── Broadcast to all clients ───────────────────────────────────
 function broadcast() {
   io.emit('queue_update', buildBroadcastPayload());
 }
@@ -119,7 +171,6 @@ async function persistToDb() {
       totalServed: state.totalServed,
       consultStartTime: state.consultStartTime,
     });
-    // Upsert all patients
     for (const p of state.queue) {
       await Patient.findOneAndUpdate(
         { sessionId: state.sessionId, token: p.token },
@@ -128,17 +179,16 @@ async function persistToDb() {
       );
     }
   } catch (err) {
-    console.warn('[DB] Persist failed (non-fatal):', err.message);
+    console.warn('[DB] Persist failed:', err.message);
   }
 }
 
-// ── MongoDB connection (optional — graceful fallback) ──────────
+// ── MongoDB connection ─────────────────────────────────────────
 async function connectDb() {
   try {
     await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 3000 });
     console.log('[DB] Connected to MongoDB');
 
-    // Rehydrate today's session if exists
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     let session = await Session.findOne({ date: { $gte: today } });
@@ -153,8 +203,8 @@ async function connectDb() {
         consultStartTime: null,
       });
       console.log('[DB] New session created:', session._id);
+      state.sessionDate = session.date;
     } else {
-      // Rehydrate state from DB
       state.sessionId = session._id;
       state.currentToken = session.currentToken;
       state.nextTokenCounter = session.nextTokenCounter;
@@ -162,234 +212,336 @@ async function connectDb() {
       state.consultDurations = session.consultDurations;
       state.totalServed = session.totalServed;
       state.consultStartTime = session.consultStartTime;
+      state.sessionDate = session.date;
 
       const patients = await Patient.find({ sessionId: session._id });
       state.queue = patients.map(p => p.toObject());
-      console.log(`[DB] Rehydrated session with ${patients.length} patients`);
+      
+      // Build patients directory from queue
+      state.queue.forEach(p => {
+        if (!p.patientId) p.patientId = getPatientId(p.name, p.phone);
+        else {
+          const key = `${p.name.toLowerCase().trim()}|${(p.phone || '').trim()}`;
+          state.patientsDirectory[p.patientId] = { id: p.patientId, key, name: p.name, phone: p.phone };
+        }
+      });
     }
     state.sessionId = session._id;
   } catch (err) {
-    console.warn('[DB] MongoDB unavailable — running in pure in-memory mode:', err.message);
+    console.warn('[DB] MongoDB unavailable:', err.message);
   }
 }
 
+// ── Automatic Day Reset ─────────────────────────────────────────
+async function checkAndResetDay() {
+  if (!state.sessionDate) return;
+  const now = new Date();
+  
+  if (state.sessionDate.getFullYear() === now.getFullYear() &&
+      state.sessionDate.getMonth() === now.getMonth() &&
+      state.sessionDate.getDate() === now.getDate()) {
+    return; // Still the same day
+  }
+  
+  console.log('[SYSTEM] Day changed. Resetting session...');
+  
+  // Reset state
+  state.queue = [];
+  state.currentToken = 0;
+  state.nextTokenCounter = 1;
+  state.consultDurations = [];
+  state.totalServed = 0;
+  state.consultStartTime = null;
+  state.previousToken = 0;
+  state.lastCallTime = null;
+  state.sessionDate = now;
+
+  try {
+    const session = await Session.create({
+      date: now,
+      avgConsultMinutes: state.avgConsultMinutes,
+      currentToken: 0,
+      nextTokenCounter: 1,
+      consultDurations: [],
+      totalServed: 0,
+      consultStartTime: null,
+    });
+    state.sessionId = session._id;
+  } catch (e) {
+    console.error('Failed to create new daily session:', e);
+  }
+  
+  broadcast();
+}
+setInterval(checkAndResetDay, 60000);
+
 // ── Socket.IO event handlers ───────────────────────────────────
 io.on('connection', (socket) => {
-  console.log(`[WS] Client connected: ${socket.id}`);
-
-  // Send current state immediately to new connection
   socket.emit('queue_update', buildBroadcastPayload());
 
-  // ── ADD PATIENT ──────────────────────────────────────────────
   socket.on('add_patient', (data) => {
     const { name, phone } = data;
-    if (!name || !name.trim()) {
-      socket.emit('error_event', { message: 'Patient name is required' });
+    if (!name || !name.trim()) return;
+
+    const patientId = getPatientId(name, phone);
+    const existing = state.queue.filter(p => p.patientId === patientId);
+    
+    if (existing.some(p => p.status !== 'done')) {
+      socket.emit('error_event', { message: 'Patient is already in the queue or in consultation.' });
       return;
     }
-
+    
     const token = state.nextTokenCounter++;
     const patient = {
-      token,
-      name: name.trim(),
-      phone: phone ? phone.trim() : '',
-      status: 'waiting',
-      checkInTime: new Date().toISOString(),
-      consultStartTime: null,
-      consultEndTime: null,
-      sessionId: state.sessionId,
+      token, patientId, name: name.trim(), phone: phone ? phone.trim() : '',
+      status: 'waiting', checkInTime: new Date().toISOString(),
+      consultStartTime: null, consultEndTime: null, elapsedMs: 0,
+      isQuickConsult: false, sortIndex: null,
+      meetingsToday: existing.length + 1, sessionId: state.sessionId,
     };
-
     state.queue.push(patient);
-    console.log(`[Q] Added patient: Token #${token} — ${patient.name}`);
-
     persistToDb();
     broadcast();
-
-    // Acknowledge to receptionist with token number
     socket.emit('patient_added', { token, name: patient.name });
   });
 
-  // ── ADD EMERGENCY ──────────────────────────────────────────────
   socket.on('add_emergency', (data) => {
     const { name, phone } = data;
-    if (!name || !name.trim()) {
-      socket.emit('error_event', { message: 'Patient name is required' });
+    if (!name || !name.trim()) return;
+
+    const patientId = getPatientId(name, phone);
+    const existing = state.queue.filter(p => p.patientId === patientId);
+    
+    if (existing.some(p => p.status !== 'done')) {
+      socket.emit('error_event', { message: 'Patient is already in the queue or in consultation.' });
       return;
     }
-
+    
     const token = state.nextTokenCounter++;
     const patient = {
-      token,
-      name: name.trim(),
-      phone: phone ? phone.trim() : '',
-      status: 'in-consultation',
-      checkInTime: new Date().toISOString(),
-      consultStartTime: new Date().toISOString(),
-      consultEndTime: null,
-      sessionId: state.sessionId,
+      token, patientId, name: name.trim(), phone: phone ? phone.trim() : '',
+      status: 'in-consultation', checkInTime: new Date().toISOString(),
+      consultStartTime: new Date().toISOString(), consultEndTime: null,
+      elapsedMs: 0, isEmergency: true, sortIndex: -1,
+      meetingsToday: existing.length + 1, sessionId: state.sessionId,
     };
 
-    // Mark current in-consultation patient as done
+    const currentInConsult = state.queue.find(p => p.status === 'in-consultation');
+    if (currentInConsult) {
+      currentInConsult.elapsedMs = (currentInConsult.elapsedMs || 0) + (Date.now() - state.consultStartTime);
+      if (currentInConsult.isEmergency) {
+        patient.status = 'waiting-emergency';
+        patient.consultStartTime = null;
+        state.queue.push(patient);
+        persistToDb();
+        broadcast();
+        socket.emit('patient_added', { token, name: patient.name });
+        return;
+      } else {
+        currentInConsult.status = 'on-hold';
+        currentInConsult.consultStartTime = null;
+      }
+    }
+
+    state.previousToken = state.currentToken;
+    state.lastCallTime = Date.now();
+    state.queue.push(patient);
+    state.currentToken = token;
+    state.consultStartTime = Date.now();
+    persistToDb();
+    broadcast();
+    socket.emit('patient_added', { token, name: patient.name });
+  });
+
+  socket.on('quick_consult', (data) => {
+    const { token } = data;
+    const oldPat = state.queue.find(p => p.token === token);
+    if (!oldPat || oldPat.status !== 'done') return;
+
+    const existing = state.queue.filter(p => p.patientId === oldPat.patientId);
+    const newToken = state.nextTokenCounter++;
+    
+    const patient = {
+      token: newToken,
+      patientId: oldPat.patientId,
+      name: oldPat.name,
+      phone: oldPat.phone,
+      status: 'quick-consult',
+      checkInTime: new Date().toISOString(),
+      consultStartTime: null,
+      consultEndTime: null,
+      elapsedMs: oldPat.elapsedMs || 0,
+      isQuickConsult: true,
+      sortIndex: 0,
+      meetingsToday: existing.length + 1,
+      sessionId: state.sessionId,
+    };
+    state.queue.push(patient);
+    persistToDb();
+    broadcast();
+  });
+
+  socket.on('reorder_queue', (data) => {
+    const { orderedTokens } = data;
+    orderedTokens.forEach((token, idx) => {
+      const p = state.queue.find(x => x.token === token);
+      if (p) p.sortIndex = idx;
+    });
+    // For anyone not explicitly ordered but in waiting, reset their sort index so they fall back to priority
+    state.queue.forEach(p => {
+        if (!orderedTokens.includes(p.token) && STATUS_PRIORITY[p.status]) {
+            p.sortIndex = null;
+        }
+    });
+    persistToDb();
+    broadcast();
+  });
+
+  socket.on('swap_consultation', (data) => {
+    const { token } = data;
+    const targetPat = state.queue.find(p => p.token === token);
+    const currentInConsult = state.queue.find(p => p.status === 'in-consultation');
+    
+    if (!targetPat || targetPat.status === 'done' || targetPat.status === 'in-consultation') return;
+
+    if (currentInConsult) {
+      currentInConsult.elapsedMs = (currentInConsult.elapsedMs || 0) + (Date.now() - state.consultStartTime);
+      currentInConsult.status = 'on-hold';
+      currentInConsult.consultStartTime = null;
+    }
+
+    targetPat.status = 'in-consultation';
+    targetPat.consultStartTime = new Date().toISOString();
+    
+    state.previousToken = state.currentToken;
+    state.currentToken = targetPat.token;
+    state.consultStartTime = Date.now();
+    
+    persistToDb();
+    broadcast();
+  });
+
+  socket.on('call_next', () => {
+    const waitingPatients = state.queue
+      .filter(p => STATUS_PRIORITY[p.status])
+      .sort((a, b) => {
+        const pA = STATUS_PRIORITY[a.status];
+        const pB = STATUS_PRIORITY[b.status];
+        if (pA !== pB) return pA - pB;
+
+        const idxA = a.sortIndex !== null && a.sortIndex !== undefined ? a.sortIndex : 999999;
+        const idxB = b.sortIndex !== null && b.sortIndex !== undefined ? b.sortIndex : 999999;
+        if (idxA !== idxB) return idxA - idxB;
+
+        return new Date(a.checkInTime) - new Date(b.checkInTime);
+      });
+
+    const nextPatient = waitingPatients[0];
+    if (!nextPatient) return;
+
     const currentInConsult = state.queue.find(p => p.status === 'in-consultation');
     if (currentInConsult) {
       currentInConsult.status = 'done';
       currentInConsult.consultEndTime = new Date().toISOString();
-      if (state.consultStartTime) {
-        const duration = Date.now() - state.consultStartTime;
-        state.consultDurations.push(duration);
+      currentInConsult.elapsedMs = (currentInConsult.elapsedMs || 0) + (Date.now() - state.consultStartTime);
+      
+      if (currentInConsult.elapsedMs > 0) {
+        state.consultDurations.push(currentInConsult.elapsedMs);
         if (state.consultDurations.length > 20) state.consultDurations.shift();
       }
       state.totalServed++;
     }
 
-    // Save undo snapshot
     state.previousToken = state.currentToken;
     state.lastCallTime = Date.now();
 
-    // Add new emergency patient
-    state.queue.push(patient);
-    state.currentToken = token;
-    state.consultStartTime = Date.now();
-
-    console.log(`[Q] Emergency: Called token #${token} — ${patient.name}`);
-
-    persistToDb();
-    broadcast();
-
-    socket.emit('patient_added', { token, name: patient.name });
-  });
-
-  // ── CALL NEXT ────────────────────────────────────────────────
-  socket.on('call_next', () => {
-    const nextPatient = state.queue.find(p => p.status === 'waiting');
-    if (!nextPatient) {
-      socket.emit('error_event', { message: 'No patients waiting in queue' });
-      return;
-    }
-
-    // Mark current in-consultation patient as done
-    const currentInConsult = state.queue.find(p => p.status === 'in-consultation');
-    if (currentInConsult) {
-      currentInConsult.status = 'done';
-      currentInConsult.consultEndTime = new Date().toISOString();
-
-      // Record actual consultation duration for rolling average
-      if (state.consultStartTime) {
-        const duration = Date.now() - state.consultStartTime;
-        state.consultDurations.push(duration);
-        if (state.consultDurations.length > 20) state.consultDurations.shift(); // keep last 20
-      }
-      state.totalServed++;
-    }
-
-    // Save undo snapshot
-    state.previousToken = state.currentToken;
-    state.lastCallTime = Date.now();
-
-    // Advance to next patient
     nextPatient.status = 'in-consultation';
     nextPatient.consultStartTime = new Date().toISOString();
     state.currentToken = nextPatient.token;
     state.consultStartTime = Date.now();
 
-    console.log(`[Q] Called token #${state.currentToken} — ${nextPatient.name}`);
-
     persistToDb();
     broadcast();
   });
 
-  // ── MARK DONE (manual) ───────────────────────────────────────
   socket.on('mark_done', (data) => {
     const { token } = data;
     const patient = state.queue.find(p => p.token === token);
-    if (!patient || patient.status === 'done') {
-      socket.emit('error_event', { message: 'Patient not found or already done' });
-      return;
-    }
+    if (!patient || patient.status === 'done') return;
 
     const wasInConsult = patient.status === 'in-consultation';
     patient.status = 'done';
     patient.consultEndTime = new Date().toISOString();
 
     if (wasInConsult) {
-      if (state.consultStartTime) {
-        const duration = Date.now() - state.consultStartTime;
-        state.consultDurations.push(duration);
+      patient.elapsedMs = (patient.elapsedMs || 0) + (Date.now() - state.consultStartTime);
+      if (patient.elapsedMs > 0) {
+        state.consultDurations.push(patient.elapsedMs);
         if (state.consultDurations.length > 20) state.consultDurations.shift();
       }
       state.totalServed++;
+      state.previousToken = patient.token;
       state.currentToken = 0;
       state.consultStartTime = null;
+      state.lastCallTime = Date.now();
     }
-
-    console.log(`[Q] Marked done: Token #${token}`);
     persistToDb();
     broadcast();
   });
 
-  // ── SET AVG CONSULT TIME ─────────────────────────────────────
-  socket.on('set_avg_time', (data) => {
-    const minutes = parseFloat(data.minutes);
-    if (isNaN(minutes) || minutes < 1 || minutes > 120) {
-      socket.emit('error_event', { message: 'Average time must be between 1 and 120 minutes' });
-      return;
-    }
-    state.avgConsultMinutes = minutes;
-    console.log(`[Q] Avg consult time set to ${minutes} min`);
-    persistToDb();
-    broadcast();
-  });
-
-  // ── UNDO LAST CALL (30-second window) ───────────────────────
   socket.on('undo_call', () => {
-    if (!state.lastCallTime || (Date.now() - state.lastCallTime > 30000)) {
-      socket.emit('error_event', { message: 'Undo window expired (30 seconds)' });
-      return;
-    }
+    if (!state.lastCallTime || (Date.now() - state.lastCallTime > 30000)) return;
 
-    // Revert current patient back to waiting
     const currentPatient = state.queue.find(p => p.status === 'in-consultation');
     if (currentPatient) {
-      currentPatient.status = 'waiting';
+      if (currentPatient.isEmergency) {
+        currentPatient.status = 'waiting-emergency';
+      } else if (currentPatient.elapsedMs > 0) {
+        currentPatient.status = 'quick-consult'; 
+        currentPatient.isQuickConsult = true;
+      } else {
+        currentPatient.status = 'waiting';
+      }
       currentPatient.consultStartTime = null;
     }
 
-    // Revert previous done patient to in-consultation if it was the prior token
     if (state.previousToken > 0) {
       const prevPatient = state.queue.find(p => p.token === state.previousToken);
-      if (prevPatient && prevPatient.status === 'done') {
+      if (prevPatient) {
         prevPatient.status = 'in-consultation';
         prevPatient.consultEndTime = null;
-        state.totalServed = Math.max(0, state.totalServed - 1);
         if (state.consultDurations.length > 0) state.consultDurations.pop();
+        state.totalServed = Math.max(0, state.totalServed - 1);
       }
     }
 
     state.currentToken = state.previousToken;
-    state.consultStartTime = state.lastCallTime - (state.avgConsultMinutes * 60000 * 0.5);
+    state.consultStartTime = Date.now(); 
     state.lastCallTime = null;
 
-    console.log(`[Q] Undo last call — reverted to token #${state.currentToken}`);
     persistToDb();
     broadcast();
   });
 
-  // ── REMOVE PATIENT ───────────────────────────────────────────
   socket.on('remove_patient', (data) => {
     const { token } = data;
-    const idx = state.queue.findIndex(p => p.token === token && p.status === 'waiting');
-    if (idx === -1) {
-      socket.emit('error_event', { message: 'Patient not found or cannot be removed' });
-      return;
+    const idx = state.queue.findIndex(p => p.token === token && STATUS_PRIORITY[p.status]);
+    if (idx !== -1) {
+      state.queue.splice(idx, 1);
+      persistToDb();
+      broadcast();
     }
-    const removed = state.queue.splice(idx, 1)[0];
-    console.log(`[Q] Removed patient: Token #${removed.token} — ${removed.name}`);
-    persistToDb();
-    broadcast();
   });
 
-  // ── GET PATIENT STATUS (for patient self-lookup) ─────────────
+  socket.on('set_avg_time', (data) => {
+    const minutes = parseFloat(data.minutes);
+    if (minutes >= 1 && minutes <= 120) {
+      state.avgConsultMinutes = minutes;
+      persistToDb();
+      broadcast();
+    }
+  });
+
   socket.on('lookup_token', (data) => {
     const { token } = data;
     const waitingList = computeWaitTimes();
@@ -409,33 +561,81 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
-    console.log(`[WS] Client disconnected: ${socket.id}`);
+  socket.on('get_history', async (data, cb) => {
+    try {
+      const start = new Date(data.date); start.setHours(0,0,0,0);
+      const end = new Date(data.date); end.setHours(23,59,59,999);
+      const session = await Session.findOne({ date: { $gte: start, $lte: end } });
+      if (!session) return cb({ done: [] });
+      const pts = await Patient.find({ sessionId: session._id, status: 'done' }).sort({ consultEndTime: -1 });
+      cb({ done: pts.map(p => p.toObject()) });
+    } catch (e) {
+      cb({ done: [] });
+    }
   });
-});
 
-// ── REST endpoint — health check ──────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    dbConnected: mongoose.connection.readyState === 1,
-    queueLength: state.queue.filter(p => p.status === 'waiting').length,
-    currentToken: state.currentToken,
-    uptime: process.uptime(),
+  socket.on('get_all_patients', async (cb) => {
+    try {
+      if (mongoose.connection.readyState !== 1) {
+        return cb(Object.values(state.patientsDirectory).map(p => ({
+          ...p,
+          totalMeetings: state.queue.filter(q => q.patientId === p.id).length
+        })));
+      }
+      
+      const results = await Patient.aggregate([
+        {
+          $group: {
+            _id: "$patientId",
+            name: { $last: "$name" },
+            phone: { $last: "$phone" },
+            totalMeetings: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]);
+      
+      const dir = results.map(r => ({
+        id: r._id,
+        name: r.name,
+        phone: r.phone,
+        totalMeetings: r.totalMeetings
+      }));
+      cb(dir);
+    } catch (e) {
+      console.warn('Failed to fetch patients directory', e);
+      cb([]);
+    }
   });
+
+  socket.on('disconnect', () => {});
 });
 
-// ── REST endpoint — full state snapshot ───────────────────────
-app.get('/api/state', (req, res) => {
-  res.json(buildBroadcastPayload());
+// ── REST endpoint — History by Date ───────────────────────────
+app.get('/api/history', async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) return res.json([]);
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const session = await Session.findOne({ date: { $gte: startOfDay, $lte: endOfDay } });
+    if (!session) return res.json([]);
+
+    const patients = await Patient.find({ sessionId: session._id, status: 'done' }).sort({ consultEndTime: -1 });
+    res.json(patients);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// ── Boot ──────────────────────────────────────────────────────
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
 const PORT = process.env.PORT || 3000;
 connectDb().then(() => {
   server.listen(PORT, () => {
     console.log(`\n🏥 Clinic Queue Server running on http://localhost:${PORT}`);
-    console.log(`   Receptionist: http://localhost:${PORT}/receptionist.html`);
-    console.log(`   Patient View: http://localhost:${PORT}/patient.html\n`);
   });
 });
