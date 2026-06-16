@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicQ — Receptionist Dashboard</title>
+  <meta name="description" content="Real-time clinic queue management for receptionists. Add patients, call tokens, and track wait times live." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="receptionist.css" />
+</head>
+<body>
+  <!-- ── HEADER ─────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-icon">🏥</span>
+        <span class="logo-text">ClinicQ</span>
+        <span class="logo-badge">Receptionist</span>
+      </div>
+    </div>
+    <div class="header-center">
+      <div id="connection-status" class="conn-badge conn-connecting">
+        <span class="conn-dot"></span>
+        <span class="conn-label">Connecting…</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-time" id="header-time">--:--</div>
+      <a href="patient.html" target="_blank" class="btn-ghost">Patient View ↗</a>
+    </div>
+  </header>
+
+  <!-- ── STATS BAR ──────────────────────────────────────────── -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-waiting">0</div>
+      <div class="stat-label">Waiting</div>
+    </div>
+    <div class="stat-card stat-card--green">
+      <div class="stat-value" id="stat-served">0</div>
+      <div class="stat-label">Served Today</div>
+    </div>
+    <div class="stat-card stat-card--purple">
+      <div class="stat-value" id="stat-avg-real">—</div>
+      <div class="stat-label">Real Avg (min)</div>
+    </div>
+    <div class="stat-card stat-card--orange">
+      <div class="stat-value" id="stat-samples">0</div>
+      <div class="stat-label">Data Samples</div>
+    </div>
+  </div>
+
+  <!-- ── MAIN GRID ──────────────────────────────────────────── -->
+  <main class="main-grid">
+
+    <!-- ── LEFT PANEL: CONTROLS ──────────────────────────────── -->
+    <aside class="panel panel-controls">
+
+      <!-- Current Token -->
+      <div class="current-token-card">
+        <div class="current-token-label">Now Serving</div>
+        <div class="current-token-number" id="current-token-display">—</div>
+        <div class="current-token-name" id="current-token-name">No patient in consultation</div>
+        <div class="consult-timer" id="consult-timer"></div>
+      </div>
+
+      <!-- Call Next -->
+      <div class="action-section">
+        <button id="btn-call-next" class="btn-call-next" onclick="callNext()">
+          <span class="btn-icon">▶</span>
+          <span>Call Next Token</span>
+          <span class="next-preview" id="next-token-preview"></span>
+        </button>
+        <button id="btn-undo" class="btn-undo hidden" onclick="undoCall()">
+          ↩ Undo Last Call <span id="undo-countdown"></span>
+        </button>
+      </div>
+
+      <!-- Add Patient Form -->
+      <div class="form-card">
+        <h3 class="form-title">
+          <span>➕</span> Add Patient
+          <span class="form-subtitle">Press Enter to add quickly</span>
+        </h3>
+        <form id="add-patient-form" onsubmit="addPatient(event)">
+          <div class="input-group">
+            <label for="input-name">Patient Name <span class="required">*</span></label>
+            <input
+              id="input-name"
+              type="text"
+              placeholder="e.g. Priya Sharma"
+              autocomplete="off"
+              maxlength="60"
+              required
+              autofocus
+            />
+          </div>
+          <div class="input-group">
+            <label for="input-phone">Phone (optional)</label>
+            <input
+              id="input-phone"
+              type="tel"
+              placeholder="9876543210"
+              maxlength="15"
+            />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" id="btn-add">
+              <span>Add &amp; Assign Token</span>
+            </button>
+            <button type="button" class="btn-add-call" id="btn-add-call" onclick="addAndCall()">
+              Add + Call Now
+            </button>
+          </div>
+        </form>
+        <div id="last-added-banner" class="last-added hidden"></div>
+      </div>
+
+      <!-- Avg Consultation Time -->
+      <div class="settings-card">
+        <h3 class="settings-title">⚙️ Avg Consultation Time</h3>
+        <div class="slider-row">
+          <input
+            type="range"
+            id="avg-slider"
+            min="1"
+            max="60"
+            value="10"
+            step="1"
+            oninput="onSliderInput(this.value)"
+          />
+          <div class="slider-value-group">
+            <input
+              type="number"
+              id="avg-input"
+              min="1"
+              max="120"
+              value="10"
+              onchange="setAvgTime(this.value)"
+            />
+            <span class="unit">min</span>
+          </div>
+        </div>
+        <p class="settings-note" id="avg-source-note">
+          Using manually set value — real data will override once 2+ consultations complete.
+        </p>
+      </div>
+
+    </aside>
+
+    <!-- ── RIGHT PANEL: QUEUE TABLE ───────────────────────────── -->
+    <section class="panel panel-queue">
+      <div class="queue-header">
+        <h2 class="queue-title">Waiting Queue</h2>
+        <div class="queue-meta" id="queue-meta">0 patients waiting</div>
+      </div>
+
+      <!-- In Consultation Row -->
+      <div id="in-consult-section" class="in-consult-section hidden">
+        <div class="in-consult-header">Currently in Consultation</div>
+        <div id="in-consult-row" class="in-consult-row"></div>
+      </div>
+
+      <!-- Waiting List -->
+      <div class="queue-table-wrapper">
+        <table class="queue-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Token</th>
+              <th>Name</th>
+              <th>Checked In</th>
+              <th>Wait (est.)</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="queue-tbody">
+            <tr id="empty-row">
+              <td colspan="6" class="empty-state">
+                <div class="empty-icon">🗒️</div>
+                <div>Queue is empty — add the first patient above</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Done Section -->
+      <details class="done-section" id="done-section">
+        <summary class="done-summary">
+          ✅ Completed Today <span id="done-count">(0)</span>
+        </summary>
+        <div id="done-list" class="done-list"></div>
+      </details>
+    </section>
+  </main>
+
+  <!-- ── TOAST NOTIFICATIONS ────────────────────────────────── -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="receptionist.js"></script>
+</body>
+</html>
