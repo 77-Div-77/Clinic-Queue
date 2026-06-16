@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clinic Queue — Patients Directory</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="receptionist.css" />
+  <style>
+    .patients-card { padding: 24px; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo" onclick="window.location.href='receptionist.html'" style="cursor:pointer;">
+      <div class="sl-icon">🏥</div>
+      <div><div class="sl-name">ClinicQ</div><div class="sl-role">Patients Panel</div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="receptionist.html" class="snav-item" id="nav-dash">
+        <span class="snav-icon">◱</span> Dashboard
+      </a>
+      <a href="history.html" class="snav-item" id="nav-history">
+        <span class="snav-icon">◴</span> History
+      </a>
+      <a href="patients.html" class="snav-item active" id="nav-patients">
+        <span class="snav-icon">👥</span> Patients
+      </a>
+      <a href="/" class="snav-item"><span class="snav-icon">🏠</span> Back to Home</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sf-conn">
+        <div class="sf-dot" id="sf-dot"></div>
+        <span class="sf-conn-text" id="sf-text">Connecting…</span>
+      </div>
+      <div class="sf-time" id="sf-time">--:--:--</div>
+    </div>
+  </aside>
+
+  <div class="main-wrap">
+    <header class="topbar">
+      <div class="topbar-title">
+        <button id="sidebar-toggle" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--text);">&#9776;</button>
+        Patients Directory
+      </div>
+    </header>
+    
+    <div class="main-content" style="grid-template-columns: 1fr;">
+      <div class="card patients-card">
+        <div class="qc-header" style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:15px;font-weight:800;color:var(--text);">Patients Directory</div>
+            <div id="patients-count" style="font-size:11px;color:var(--text-muted);margin-top:2px;">Loading…</div>
+          </div>
+          <input id="patients-search" type="text" placeholder="🔍 Search name, phone or ID…" oninput="filterPatients()" class="queue-search" style="width:220px;" />
+        </div>
+        <div class="queue-table-wrap">
+          <table class="queue-table">
+            <thead>
+              <tr>
+                <th class="sortable-th" onclick="sortPatients('id')" style="cursor:pointer;">Patient ID <span id="sort-pid" class="sort-arrow"></span></th>
+                <th class="sortable-th" onclick="sortPatients('name')" style="cursor:pointer;">Name <span id="sort-name" class="sort-arrow"></span></th>
+                <th>Phone Number</th>
+                <th class="sortable-th" onclick="sortPatients('totalMeetings')" style="cursor:pointer;">Total Meetings <span id="sort-meetings" class="sort-arrow"></span></th>
+              </tr>
+            </thead>
+            <tbody id="patients-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+  <script>
+    if (sessionStorage.getItem('rcp_auth') !== '1') window.location.replace('/?signin=1');
+    function signOut() { sessionStorage.removeItem('rcp_auth'); window.location.href = '/'; }
+  </script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="patients.js"></script>
+</body>
+</html>
