@@ -7,6 +7,7 @@ let currentState = null;
 let heroTimerInterval = null;
 let alertShown = false;
 let lookupDebounce = null;
+let timeOffset = 0;
 
 // ── CONNECTION ─────────────────────────────────────────────
 const connBadge = document.getElementById('conn-badge');
@@ -22,6 +23,7 @@ socket.on('disconnect', () => {
 
 // ── MAIN UPDATE ────────────────────────────────────────────
 socket.on('queue_update', (data) => {
+  if (data.serverTime) timeOffset = data.serverTime - Date.now();
   currentState = data;
   renderHero(data);
   renderStats(data);
@@ -43,20 +45,29 @@ function renderHero(data) {
   }
 
   if (data.currentToken > 0 && data.inConsultation?.length > 0) {
-    sub.textContent = 'In consultation right now';
-    startHeroTimer(data.consultStartTime, data.avgConsultMinutes);
+    const p = data.inConsultation[0];
+    sub.innerHTML = `In consultation right now${p.isEmergency ? ' <span style="color:var(--red);font-weight:700">[Emergency]</span>' : ''}`;
+    startHeroTimer(p, data.avgConsultMinutes);
   } else {
     sub.textContent = data.currentToken > 0 ? 'Consultation in progress' : 'Waiting for first patient to be called';
     stopHeroTimer();
   }
 }
-function startHeroTimer(startTime, avgMin) {
+function startHeroTimer(patient, avgMin) {
   stopHeroTimer();
-  if (!startTime) return;
-  const avgMs = avgMin * 60000;
+  const startTime = new Date(patient.consultStartTime).getTime();
+  if (!startTime && !patient.liveElapsedMs) return;
+  
+  const allottedMin = patient.isEmergency ? 10 : (patient.isQuickConsult ? 2 : avgMin);
+  const avgMs = allottedMin * 60000;
   const el = document.getElementById('hero-timer');
   heroTimerInterval = setInterval(() => {
-    const rem = avgMs - (Date.now() - startTime);
+    const adjustedNow = Date.now() + timeOffset;
+    let elapsed = patient.elapsedMs || 0;
+    if (patient.consultStartTime) {
+        elapsed += (adjustedNow - new Date(patient.consultStartTime).getTime());
+    }
+    const rem = avgMs - elapsed;
     if (rem > 0) {
       const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
       el.textContent = `⏱ Approx. ${m}m ${s}s remaining`;
@@ -94,18 +105,39 @@ function renderQueue(data) {
   list.innerHTML = data.queue.map((p, idx) => {
     const isNext = idx === 0;
     const isMine = myToken !== null && p.token === myToken;
-    const waitLabel = p.estimatedWaitMin <= 1 ? 'Next!' : `~${p.estimatedWaitMin}`;
-    const waitUnit  = p.estimatedWaitMin <= 1 ? '' : 'min';
-    const waitCls   = isNext ? 'next' : p.estimatedWaitMin <= 8 ? 'short' : 'long';
+    const isEmergency = p.status === 'waiting-emergency';
+    const isQuick = p.status === 'quick-consult';
+    const isOnHold = p.status === 'on-hold';
+
+    let waitLabel = `~${Math.max(0, p.estimatedWaitMin)}`;
+    let waitUnit = 'min';
+    let waitCls = p.estimatedWaitMin <= 8 ? 'short' : 'long';
+    let badgeCls = '';
+    let nameTag = '';
+
+    if (isEmergency) {
+        waitCls = 'emergency'; badgeCls = 'emergency';
+        nameTag = ' <span class="wl-next-badge" style="background:rgba(30,58,138,0.1); color:var(--red);">🚨 Emergency</span>';
+    } else if (isQuick) {
+        waitCls = 'quick-consult'; badgeCls = 'quick-consult';
+        nameTag = ' <span class="wl-next-badge" style="background:#e0f2fe; color:#0284c7;">⚡ Quick Consult</span>';
+    } else if (isOnHold) {
+        waitCls = 'on-hold'; badgeCls = 'on-hold';
+        nameTag = ' <span class="wl-next-badge" style="background:rgba(67,56,202,0.1); color:var(--amber);">⏸ On Hold</span>';
+    } else if (isNext) {
+        waitCls = 'next'; badgeCls = 'next';
+    }
+
     return `
-      <div class="wl-item${isNext ? ' next' : ''}${isMine ? ' mine' : ''}">
+      <div class="wl-item${badgeCls ? ' '+badgeCls : ''}${isMine ? ' mine' : ''}">
         <div class="wl-pos">${idx + 1}</div>
-        <div class="wl-token${isNext ? ' next' : ''}${isMine ? ' mine' : ''}">${p.token}</div>
+        <div class="wl-token${badgeCls ? ' '+badgeCls : ''}${isMine ? ' mine' : ''}">${p.token}</div>
         <div class="wl-info">
           <div class="wl-info-top">
             Token #${p.token}
             ${isMine ? '<span class="wl-mine-badge">← You</span>' : ''}
-            ${isNext && !isMine ? '<span class="wl-next-badge">● Next</span>' : ''}
+            ${isNext && !isMine && !isEmergency && !isQuick && !isOnHold ? '<span class="wl-next-badge">● Next</span>' : ''}
+            ${nameTag}
           </div>
           <div class="wl-info-sub">${p.tokensAhead === 0 ? 'You are next in line!' : `${p.tokensAhead} patient${p.tokensAhead > 1 ? 's' : ''} ahead`}</div>
         </div>
