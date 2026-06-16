@@ -23,8 +23,8 @@
     --amber:      #d97706;
     --amber-lt:   #fef3c7;
     --red:        #dc2626;
-    --bg:         #ffffff;
-    --bg-soft:    #f8fafc;
+    --bg:         #eff6ff;
+    --bg-soft:    #eff6ff;
     --bg-blue:    #eff6ff;
     --border:     #e2e8f0;
     --text:       #1e293b;
@@ -183,12 +183,12 @@
     border-radius: 8px; padding: 10px 12px;
   }
   .hc-row-tkn { width: 30px; height: 30px; border-radius: 7px; background: var(--blue-light); border: 1px solid var(--blue-mid); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: var(--blue); flex-shrink: 0; }
-  .hc-row-tkn.next { background: var(--green-lt); border-color: #bbf7d0; color: var(--green); }
+  .hc-row-tkn.next { background: var(--green-lt); border-color: #93c5fd; color: var(--green); }
   .hc-row-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); }
   .hc-row-wait { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
   .hc-row-wait.soon { background: var(--green-lt); color: var(--green); }
   .hc-row-wait.mid  { background: var(--amber-lt); color: var(--amber); }
-  .hc-row-wait.long { background: #fee2e2; color: var(--red); }
+  .hc-row-wait.long { background: #dbeafe; color: var(--red); }
 
   /* ─────────────────── STATS STRIP ─────────────────── */
   .stats-strip {
@@ -225,27 +225,54 @@
   .ap-body p  { font-size: 13px; color: var(--text-sec); }
 
   .about-visual {
-    background: var(--bg-blue); border: 1px solid var(--blue-mid);
-    border-radius: 16px; padding: 32px; position: relative;
+    border-radius: 16px; position: relative; overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.18);
   }
-  .av-screen {
-    background: #fff; border-radius: var(--r);
-    border: 1px solid var(--border); box-shadow: var(--shadow);
-    overflow: hidden; margin-bottom: 16px;
-  }
-  .av-screen-bar { background: var(--blue); padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
-  .av-dot { width: 9px; height: 9px; border-radius: 50%; }
-  .av-screen-body { padding: 18px; }
-  .av-token-big { text-align: center; padding: 16px; background: var(--bg-blue); border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--blue-mid); }
-  .av-token-big .num { font-size: 48px; font-weight: 900; color: var(--blue); line-height: 1; }
-  .av-token-big .lbl { font-size: 10px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-  .av-rows { display: flex; flex-direction: column; gap: 6px; }
-  .av-row { display: flex; align-items: center; gap: 8px; background: var(--bg-soft); border-radius: 7px; padding: 8px 12px; border: 1px solid var(--border); }
-  .av-row-t { width: 26px; height: 26px; background: var(--blue-light); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--blue); flex-shrink: 0; }
-  .av-row-n { flex: 1; font-size: 12px; font-weight: 600; }
-  .av-row-w { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: var(--amber-lt); color: var(--amber); }
-  .av-row-w.g { background: var(--green-lt); color: var(--green); }
-  .av-badge { position: absolute; bottom: -16px; right: 24px; background: var(--green); color: #fff; padding: 8px 18px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 4px 14px rgba(22,163,74,0.35); }
+  /* Mock dashboard wrapper */
+  .av-app { display: flex; border-radius: 14px; overflow: hidden; font-family: 'Inter', sans-serif; border: 1px solid #e2e8f0; background: #f0f8ff; }
+  /* Sidebar */
+  .av-sidebar { width: 68px; background: #1e293b; display: flex; flex-direction: column; padding: 14px 8px; gap: 6px; flex-shrink: 0; }
+  .av-sb-logo { width: 40px; height: 40px; border-radius: 8px; background: #1a6fbc; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 10px; }
+  .av-sb-item { width: 40px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: rgba(255,255,255,0.4); cursor: pointer; }
+  .av-sb-item.active { background: #1a6fbc; color: #fff; }
+  /* Main area */
+  .av-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  /* Topbar */
+  .av-topbar { height: 40px; background: #1a6fbc; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; flex-shrink: 0; }
+  .av-topbar-title { font-size: 11px; font-weight: 800; color: #fff; }
+  .av-topbar-date  { font-size: 9px; color: rgba(255,255,255,0.7); }
+  .av-topbar-badge { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 2px 8px; font-size: 9px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 4px; }
+  .av-topbar-dot { width: 5px; height: 5px; border-radius: 50%; background: #4ade80; animation: blink 1.2s infinite; }
+  /* KPI strip */
+  .av-kpi { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; background: #f0f8ff; }
+  .av-kpi-card { flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 7px; padding: 6px 8px; }
+  .av-kpi-val { font-size: 14px; font-weight: 900; color: #1e293b; line-height: 1; }
+  .av-kpi-lbl { font-size: 8px; color: #94a3b8; font-weight: 600; margin-top: 1px; text-transform: uppercase; letter-spacing: .3px; }
+  /* Content grid */
+  .av-content { display: flex; gap: 6px; padding: 8px 10px; flex: 1; }
+  /* Serving card */
+  .av-serve { width: 90px; flex-shrink: 0; background: linear-gradient(135deg, #155a99, #1a6fbc); border-radius: 8px; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .av-serve-lbl { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.7); }
+  .av-serve-num { font-size: 34px; font-weight: 900; color: #fff; line-height: 1; }
+  .av-serve-name { font-size: 8px; color: rgba(255,255,255,0.8); font-weight: 600; text-align: center; }
+  .av-serve-prog { width: 100%; height: 3px; border-radius: 3px; background: rgba(255,255,255,0.2); margin-top: 4px; overflow: hidden; }
+  .av-serve-bar { width: 60%; height: 100%; background: rgba(255,255,255,0.85); border-radius: 3px; }
+  /* Queue table */
+  .av-queue { flex: 1; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+  .av-queue-head { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+  .av-queue-title { font-size: 9px; font-weight: 800; color: #1e293b; }
+  .av-queue-sub   { font-size: 8px; color: #94a3b8; }
+  .av-qrow { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-bottom: 1px solid #f1f5f9; }
+  .av-qrow:last-child { border-bottom: none; }
+  .av-qrow-t { width: 20px; height: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; background: #e8f3fc; color: #1a6fbc; border: 1px solid #c3ddf5; flex-shrink: 0; }
+  .av-qrow-t.next { background: #dcfce7; color: #16a34a; border-color: #86efac; }
+  .av-qrow-t.emg { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+  .av-qrow-n { flex: 1; font-size: 9px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .av-qrow-w { font-size: 8px; font-weight: 700; padding: 1px 6px; border-radius: 20px; white-space: nowrap; }
+  .av-qrow-w.next  { background: #dcfce7; color: #16a34a; }
+  .av-qrow-w.soon  { background: #e0f2fe; color: #0284c7; }
+  .av-qrow-w.later { background: #e0e7ff; color: #4f46e5; }
+  .av-badge { position: absolute; bottom: -14px; right: 20px; background: #16a34a; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: 700; box-shadow: 0 4px 14px rgba(22,163,74,0.4); white-space: nowrap; }
 
   /* ─────────────────── HOW IT WORKS ─────────────────── */
   .steps-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 28px; margin-top: 52px; }
@@ -273,10 +300,10 @@
   .fc-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px; }
   .fc-icon.blue   { background: var(--blue-light); border: 1px solid var(--blue-mid); }
   .fc-icon.teal   { background: var(--teal-light);  border: 1px solid #99f6e4; }
-  .fc-icon.green  { background: var(--green-lt);    border: 1px solid #bbf7d0; }
-  .fc-icon.amber  { background: var(--amber-lt);    border: 1px solid #fde68a; }
-  .fc-icon.red    { background: #fee2e2;             border: 1px solid #fca5a5; }
-  .fc-icon.purple { background: #f3e8ff;             border: 1px solid #d8b4fe; }
+  .fc-icon.green  { background: var(--green-lt);    border: 1px solid #93c5fd; }
+  .fc-icon.amber  { background: var(--amber-lt);    border: 1px solid #c7d2fe; }
+  .fc-icon.red    { background: #dbeafe;             border: 1px solid #bfdbfe; }
+  .fc-icon.purple { background: #e0f2fe;             border: 1px solid #7dd3fc; }
   .feature-card h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
   .feature-card p  { font-size: 13px; color: var(--text-sec); line-height: 1.7; }
 
@@ -325,12 +352,12 @@
   .lqw-rows { display: flex; flex-direction: column; gap: 7px; }
   .lqw-row { display: flex; align-items: center; gap: 10px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; }
   .lqw-tkn { width: 28px; height: 28px; border-radius: 7px; background: var(--blue-light); border: 1px solid var(--blue-mid); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--blue); flex-shrink: 0; }
-  .lqw-tkn.g { background: var(--green-lt); border-color: #bbf7d0; color: var(--green); }
+  .lqw-tkn.g { background: var(--green-lt); border-color: #93c5fd; color: var(--green); }
   .lqw-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
   .lqw-wait { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
   .lqw-wait.g { background: var(--green-lt); color: var(--green); }
   .lqw-wait.a { background: var(--amber-lt); color: var(--amber); }
-  .lqw-wait.r { background: #fee2e2; color: var(--red); }
+  .lqw-wait.r { background: #dbeafe; color: var(--red); }
   .lqw-footer { padding: 12px 20px; border-top: 1px solid var(--border); text-align: center; font-size: 11px; color: var(--text-muted); }
 
   /* ─────────────────── WHY CHOOSE ─────────────────── */
@@ -521,7 +548,7 @@
     </div>
     <div class="nav-actions">
       <a href="/patient.html" class="btn-nav-ghost" target="_blank">Patient View</a>
-      <a href="/receptionist.html" class="btn-nav-solid">Dashboard →</a>
+      <button onclick="openSignIn()" class="btn-nav-solid" style="border:none;cursor:pointer;font-family:inherit;">Sign In →</button>
     </div>
     <div class="nav-hamburger">
       <span></span><span></span><span></span>
@@ -540,8 +567,8 @@
       <h1>End the Paper Slip Era.<br/><em>Go Digital. Go Live.</em></h1>
       <p class="hero-sub">ClinicQ gives every patient in your waiting room a live token number and real wait time — right on their phone. Your receptionist manages everything in seconds, from one screen.</p>
       <div class="hero-actions">
-        <a href="/receptionist.html" class="btn-primary">🖥️ Open Receptionist Dashboard</a>
-        <a href="/patient.html" class="btn-secondary">📱 Patient Waiting Room</a>
+        <button onclick="openSignIn()" class="btn-primary" style="border:none;cursor:pointer;font-family:inherit;">🖥️ Open Receptionist Dashboard</button>
+        <a href="/patient.html" class="btn-secondary" target="_blank">📱 Patient Waiting Room</a>
       </div>
       <div class="hero-trust">
         <div class="hero-trust-item"><div class="hero-trust-icon">✓</div> Add patient in &lt;5 seconds</div>
@@ -629,39 +656,78 @@
         </div>
         <a href="/receptionist.html" class="btn-primary">Get Started →</a>
       </div>
-      <div class="about-visual" style="position:relative;padding-bottom:48px">
-        <div class="av-screen">
-          <div class="av-screen-bar">
-            <div class="av-dot" style="background:#ef4444"></div>
-            <div class="av-dot" style="background:#f59e0b;margin-left:5px"></div>
-            <div class="av-dot" style="background:#22c55e;margin-left:5px"></div>
-            <span style="flex:1;margin-left:12px;font-size:11px;color:rgba(255,255,255,0.7)">ClinicQ — Receptionist Dashboard</span>
+      <div class="about-visual" style="position:relative;padding-bottom:30px">
+        <div class="av-app">
+          <!-- Sidebar -->
+          <div class="av-sidebar">
+            <div class="av-sb-logo">🏥</div>
+            <div class="av-sb-item active">◱</div>
+            <div class="av-sb-item">◴</div>
+            <div class="av-sb-item">👥</div>
+            <div class="av-sb-item">📱</div>
           </div>
-          <div class="av-screen-body">
-            <div class="av-token-big">
-              <div class="lbl">Now Serving</div>
-              <div class="num">07</div>
+          <!-- Main -->
+          <div class="av-main">
+            <!-- Topbar -->
+            <div class="av-topbar">
+              <div class="av-topbar-title">Queue Dashboard</div>
+              <div class="av-topbar-date">Tuesday, 17 June</div>
+              <div class="av-topbar-badge"><span class="av-topbar-dot"></span> Server Online</div>
             </div>
-            <div class="av-rows">
-              <div class="av-row"><div class="av-row-t g">08</div><div class="av-row-n">Sneha Verma</div><div class="av-row-w g">Next</div></div>
-              <div class="av-row"><div class="av-row-t">09</div><div class="av-row-n">Rahul Gupta</div><div class="av-row-w">~9 min</div></div>
-              <div class="av-row"><div class="av-row-t">10</div><div class="av-row-n">Kavita Joshi</div><div class="av-row-w">~19 min</div></div>
+            <!-- KPI strip -->
+            <div class="av-kpi">
+              <div class="av-kpi-card"><div class="av-kpi-val" style="color:#1a6fbc">3</div><div class="av-kpi-lbl">Waiting</div></div>
+              <div class="av-kpi-card"><div class="av-kpi-val" style="color:#16a34a">7</div><div class="av-kpi-lbl">Served</div></div>
+              <div class="av-kpi-card"><div class="av-kpi-val" style="color:#1e293b">8</div><div class="av-kpi-lbl">Avg min</div></div>
+              <div class="av-kpi-card"><div class="av-kpi-val" style="color:#4f46e5">5</div><div class="av-kpi-lbl">Samples</div></div>
+            </div>
+            <!-- Content -->
+            <div class="av-content">
+              <!-- Serving card -->
+              <div class="av-serve">
+                <div class="av-serve-lbl">Now Serving</div>
+                <div class="av-serve-num">08</div>
+                <div class="av-serve-name">Ravi Kumar</div>
+                <div class="av-serve-prog"><div class="av-serve-bar"></div></div>
+              </div>
+              <!-- Queue table -->
+              <div class="av-queue">
+                <div class="av-queue-head">
+                  <div class="av-queue-title">Waiting Queue</div>
+                  <div class="av-queue-sub">3 patients waiting</div>
+                </div>
+                <div class="av-qrow">
+                  <div class="av-qrow-t next">09</div>
+                  <div class="av-qrow-n">Sneha Verma</div>
+                  <div class="av-qrow-w next">● Next</div>
+                </div>
+                <div class="av-qrow">
+                  <div class="av-qrow-t">10</div>
+                  <div class="av-qrow-n">Rahul Gupta</div>
+                  <div class="av-qrow-w soon">~8 min</div>
+                </div>
+                <div class="av-qrow">
+                  <div class="av-qrow-t">11</div>
+                  <div class="av-qrow-n">Kavita Joshi</div>
+                  <div class="av-qrow-w later">~16 min</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="av-badge">✅ All 3 phones updated instantly</div>
+        <div class="av-badge">✅ All screens updated instantly</div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ── HOW IT WORKS ─────────────────────────────────────────── -->
-<section class="section section-bg" id="how-it-works">
+<section class="section" id="how-it-works" style="background: var(--blue);">
   <div class="section-inner">
     <div class="section-head-center" data-fade>
-      <div class="section-label">How It Works</div>
-      <h2 class="section-title">Three steps to a smarter waiting room</h2>
-      <p class="section-sub">No training required. No app to install. Just open the browser and start.</p>
+      <div class="section-label" style="color: #93c5fd;">How It Works</div>
+      <h2 class="section-title" style="color: #fff;">Three steps to a smarter waiting room</h2>
+      <p class="section-sub" style="color: #e0f2fe;">No training required. No app to install. Just open the browser and start.</p>
     </div>
     <div class="steps-grid" data-fade>
       <div class="step-card">
@@ -689,8 +755,9 @@
 </section>
 
 <!-- ── FEATURES ────────────────────────────────────────────── -->
-<section class="section" id="features">
-  <div class="section-inner">
+<section class="section" id="features" style="position: relative; overflow: hidden;">
+  <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('/features_bg.jpg') center/cover no-repeat; opacity: 0.45; z-index: 0; pointer-events: none;"></div>
+  <div class="section-inner" style="position: relative; z-index: 1;">
     <div class="section-head-center" data-fade>
       <div class="section-label">Features</div>
       <h2 class="section-title">Everything a clinic actually needs</h2>
@@ -818,8 +885,9 @@
 </section>
 
 <!-- ── TESTIMONIALS ─────────────────────────────────────────── -->
-<section class="section section-bg">
-  <div class="section-inner">
+<section class="section section-bg" id="testimonials" style="position: relative; overflow: hidden;">
+  <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('/testimonials_bg.webp') center/cover no-repeat; opacity: 0.45; z-index: 0; pointer-events: none;"></div>
+  <div class="section-inner" style="position: relative; z-index: 1;">
     <div class="section-head-center" data-fade>
       <div class="section-label">What People Say</div>
       <h2 class="section-title">Trusted by clinic staff and patients</h2>
@@ -854,7 +922,7 @@
 </section>
 
 <!-- ── FAQ ────────────────────────────────────────────────── -->
-<section class="section" id="faq">
+<section class="section section-blue" id="faq">
   <div class="section-inner">
     <div class="section-head-center" data-fade>
       <div class="section-label">FAQ</div>
@@ -908,40 +976,46 @@
 </section>
 
 <!-- ── CONTACT / ENQUIRY ────────────────────────────────────── -->
-<section class="section contact-section" id="enquiry">
-  <div class="section-inner">
+<section class="section contact-section" id="enquiry" style="position: relative; overflow: hidden; border-top: none; background: #0f172a;">
+  <video id="bg-video" autoplay loop muted playsinline style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); min-width: 100%; min-height: 100%; width: auto; height: auto; z-index: 0; object-fit: cover; opacity: 0.3;">
+    <source src="/a_short_video_on_the_image_wit.mp4" type="video/mp4">
+  </video>
+  <script>
+    document.getElementById('bg-video').playbackRate = 0.5;
+  </script>
+  <div class="section-inner" style="position: relative; z-index: 2;">
     <div class="contact-grid" data-fade>
       <div class="contact-info">
-        <div class="section-label">Get In Touch</div>
-        <h2 class="section-title">Ready to deploy ClinicQ at your clinic?</h2>
-        <p class="section-sub">Fill in the form and we'll reach out with setup instructions. Or just run it directly from the GitHub repository — it works out of the box.</p>
+        <div class="section-label" style="color: #60a5fa;">Get In Touch</div>
+        <h2 class="section-title" style="color: #fff;">Ready to deploy ClinicQ at your clinic?</h2>
+        <p class="section-sub" style="color: #cbd5e1;">Fill in the form and we'll reach out with setup instructions. Or just run it directly from the GitHub repository — it works out of the box.</p>
         <div class="contact-details" style="margin-top:32px">
           <div class="contact-item">
-            <div class="ci-icon">📞</div>
+            <div class="ci-icon" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff;">📞</div>
             <div class="ci-body">
-              <div class="ci-label">Phone</div>
-              <div class="ci-value"><a href="tel:+919876543210">+91-98765 43210</a></div>
+              <div class="ci-label" style="color: #94a3b8;">Phone</div>
+              <div class="ci-value"><a href="tel:+919876543210" style="color: #fff;">+91-98765 43210</a></div>
             </div>
           </div>
           <div class="contact-item">
-            <div class="ci-icon">💻</div>
+            <div class="ci-icon" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff;">💻</div>
             <div class="ci-body">
-              <div class="ci-label">GitHub Repository</div>
-              <div class="ci-value"><a href="https://github.com/77-Div-77/Clinic-Queue" target="_blank">github.com/77-Div-77/Clinic-Queue</a></div>
+              <div class="ci-label" style="color: #94a3b8;">GitHub Repository</div>
+              <div class="ci-value"><a href="https://github.com/77-Div-77/Clinic-Queue" target="_blank" style="color: #60a5fa;">github.com/77-Div-77/Clinic-Queue</a></div>
             </div>
           </div>
           <div class="contact-item">
-            <div class="ci-icon">🔍</div>
+            <div class="ci-icon" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff;">✉️</div>
             <div class="ci-body">
-              <div class="ci-label">API Health Check</div>
-              <div class="ci-value"><a href="/api/health">localhost:3000/api/health</a></div>
+              <div class="ci-label" style="color: #94a3b8;">Email Address</div>
+              <div class="ci-value"><a href="mailto:hello@clinicq.com" style="color: #60a5fa;">hello@clinicq.com</a></div>
             </div>
           </div>
           <div class="contact-item">
-            <div class="ci-icon">🕐</div>
+            <div class="ci-icon" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff;">🕐</div>
             <div class="ci-body">
-              <div class="ci-label">Working Hours</div>
-              <div class="ci-value">Monday to Saturday, 9:00 AM – 7:00 PM</div>
+              <div class="ci-label" style="color: #94a3b8;">Working Hours</div>
+              <div class="ci-value" style="color: #fff;">Monday to Saturday, 9:00 AM – 7:00 PM</div>
             </div>
           </div>
         </div>
@@ -1015,19 +1089,11 @@
         <a href="/receptionist.html">Receptionist Dashboard</a>
         <a href="/patient.html">Patient Waiting Room</a>
         <a href="#enquiry">Book / Enquiry</a>
-      </div>
-      <div class="footer-col-title" style="margin-top:20px">Tech Stack</div>
-      <div class="footer-links">
-        <a href="#">Node.js + Express</a>
-        <a href="#">Socket.IO (WebSocket)</a>
-        <a href="#">MongoDB + Mongoose</a>
-        <a href="#">Vanilla HTML/CSS/JS</a>
-      </div>
     </div>
     <div>
       <div class="footer-col-title">Contact</div>
       <div class="footer-contact-item"><span class="fci-icon">📞</span><span class="fci-text">+91-98765 43210</span></div>
-      <div class="footer-contact-item"><span class="fci-icon">📍</span><span class="fci-text">Your Clinic Name<br/>City, State, India</span></div>
+      <div class="footer-contact-item"><span class="fci-icon">📍</span><span class="fci-text">Clinic Name<br/>City, State, India</span></div>
       <div class="footer-contact-item"><span class="fci-icon">🕐</span><span class="fci-text">Mon–Sat: 9:00 AM – 7:00 PM</span></div>
     </div>
   </div>
@@ -1084,5 +1150,72 @@
     navLinks.forEach(l => { l.classList.toggle('active', l.getAttribute('href') === '#' + cur); });
   }, { passive: true });
 </script>
+
+<!-- ── SIGN-IN MODAL ─────────────────────────────────────────── -->
+<div id="signin-overlay" style="display:none;position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);">
+  <div style="background:#fff;border-radius:20px;padding:40px 36px;width:90%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,0.25);position:relative;animation:si-in 0.35s cubic-bezier(0.34,1.56,0.64,1);">
+    <style>
+      @keyframes si-in{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
+      .si-logo{text-align:center;margin-bottom:20px}
+      .si-logo span{font-size:36px}
+      .si-title{font-size:20px;font-weight:900;color:#1e293b;text-align:center;margin-bottom:4px}
+      .si-sub{font-size:13px;color:#94a3b8;text-align:center;margin-bottom:24px}
+      .si-field{margin-bottom:14px}
+      .si-label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px}
+      .si-input{width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-family:Inter,sans-serif;outline:none;transition:.2s;}
+      .si-input:focus{border-color:#1a6fbc;box-shadow:0 0 0 3px rgba(26,111,188,.12)}
+      .si-btn{width:100%;padding:13px;border:none;border-radius:10px;background:#1a6fbc;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-top:4px;transition:.2s;}
+      .si-btn:hover{background:#155a99}
+      .si-err{margin-top:10px;padding:9px 12px;background:#fee2e2;border-radius:8px;font-size:12px;font-weight:600;color:#dc2626;display:none;}
+      .si-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;}
+    </style>
+    <button class="si-close" onclick="closeSignIn()">&times;</button>
+    <div class="si-logo"><span>🏥</span></div>
+    <div class="si-title">Receptionist Sign In</div>
+    <div class="si-sub">Enter your credentials to access the dashboard</div>
+    <div class="si-field">
+      <label class="si-label">Username</label>
+      <input id="si-user" class="si-input" type="text" placeholder="Username" autocomplete="username" />
+    </div>
+    <div class="si-field">
+      <label class="si-label">Password</label>
+      <input id="si-pass" class="si-input" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()" />
+    </div>
+    <button class="si-btn" onclick="doSignIn()">Sign In →</button>
+    <div id="si-err" class="si-err">Incorrect username or password. Please try again.</div>
+  </div>
+</div>
+
+<script>
+  function openSignIn() {
+    if (sessionStorage.getItem('rcp_auth') === '1') { window.location.href='/receptionist.html'; return; }
+    const ov = document.getElementById('signin-overlay');
+    ov.style.display = 'flex';
+    setTimeout(()=>document.getElementById('si-user').focus(), 100);
+    // Auto-open if redirected here
+  }
+  function closeSignIn() {
+    document.getElementById('signin-overlay').style.display = 'none';
+    document.getElementById('si-err').style.display = 'none';
+    document.getElementById('si-user').value = '';
+    document.getElementById('si-pass').value = '';
+  }
+  function doSignIn() {
+    const user = document.getElementById('si-user').value.trim();
+    const pass = document.getElementById('si-pass').value;
+    if (user === 'RCP' && pass === '123') {
+      sessionStorage.setItem('rcp_auth', '1');
+      closeSignIn();
+      window.location.href = '/receptionist.html';
+    } else {
+      document.getElementById('si-err').style.display = 'block';
+      document.getElementById('si-pass').value = '';
+      document.getElementById('si-pass').focus();
+    }
+  }
+  // Auto-open modal if redirected from dashboard with ?signin=1
+  if (new URLSearchParams(location.search).get('signin') === '1') openSignIn();
+</script>
+
 </body>
 </html>
