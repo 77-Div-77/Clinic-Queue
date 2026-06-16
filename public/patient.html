@@ -3,115 +3,101 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>ClinicQ — Patient Waiting Room</title>
-  <meta name="description" content="Check your token number, watch the queue live, and get accurate wait times on your phone — no app, no refresh needed." />
+  <title>ClinicQ — Patient Queue Status</title>
+  <meta name="description" content="Check your token, see the live queue, and get your estimated wait time — no app, no refresh needed." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="patient.css" />
 </head>
 <body>
 
-  <!-- ── NAV ────────────────────────────────────────────────── -->
+  <!-- NAV -->
   <nav class="nav">
     <a href="/" class="nav-logo">
       <span class="nav-logo-icon">🏥</span>
-      <span class="nav-logo-text">ClinicQ</span>
+      <div>
+        <div class="nav-logo-name">ClinicQ</div>
+        <div class="nav-logo-sub">Patient Queue Status</div>
+      </div>
     </a>
-    <div id="conn-indicator" class="conn-indicator conn-connecting">
+    <div id="conn-badge" class="conn-badge conn-connecting">
       <span class="conn-dot"></span>
       <span id="conn-text">Connecting…</span>
     </div>
   </nav>
 
-  <!-- ── HERO TOKEN ─────────────────────────────────────────── -->
+  <!-- HERO TOKEN -->
   <section class="hero-section">
-    <div class="hero-inner">
-      <div class="hero-eyebrow">
-        <span class="hero-eyebrow-dot"></span>
-        Now Serving
-      </div>
-      <div class="hero-token-wrap">
-        <div class="hero-token" id="hero-token">—</div>
-        <div class="hero-ring hero-ring--1"></div>
-        <div class="hero-ring hero-ring--2"></div>
-      </div>
-      <div class="hero-sub" id="hero-sub">Waiting for first patient to be called</div>
-      <div class="hero-timer" id="hero-timer"></div>
+    <div class="hero-label">NOW SERVING</div>
+    <div class="hero-token-wrap">
+      <div class="hero-token" id="hero-token">—</div>
     </div>
+    <div class="hero-sub" id="hero-sub">Waiting for first patient to be called</div>
+    <div class="hero-timer" id="hero-timer"></div>
   </section>
 
-  <!-- ── STATS PILLS ────────────────────────────────────────── -->
-  <div class="stats-pills">
+  <!-- STATS PILLS -->
+  <div class="stats-row">
     <div class="stat-pill">
-      <span class="sp-val" id="sp-waiting">0</span>
-      <span class="sp-label">Waiting</span>
+      <span class="stat-val" id="sp-waiting">0</span>
+      <span class="stat-lbl">Waiting</span>
     </div>
     <div class="stat-pill stat-pill--green">
-      <span class="sp-val" id="sp-served">0</span>
-      <span class="sp-label">Served Today</span>
+      <span class="stat-val" id="sp-served">0</span>
+      <span class="stat-lbl">Served Today</span>
     </div>
-    <div class="stat-pill stat-pill--teal">
-      <span class="sp-val" id="sp-avg">—</span>
-      <span class="sp-label">Avg Visit (min)</span>
+    <div class="stat-pill stat-pill--blue">
+      <span class="stat-val" id="sp-avg">—</span>
+      <span class="stat-lbl">Avg Wait (min)</span>
     </div>
   </div>
 
-  <!-- ── TOKEN LOOKUP ───────────────────────────────────────── -->
-  <section class="lookup-section">
+  <!-- TOKEN LOOKUP -->
+  <section class="section-wrap">
     <div class="lookup-card">
-      <div class="lookup-icon">🔍</div>
-      <h2 class="lookup-title">Check Your Token</h2>
-      <p class="lookup-sub">Type your token number to see your live queue position and estimated wait</p>
-      <div class="lookup-input-wrap">
-        <input
-          id="my-token-input"
-          type="number"
-          min="1"
-          max="999"
-          placeholder="Enter token number"
-          oninput="lookupMyToken(this.value)"
-        />
-      </div>
+      <div class="lc-icon">🔍</div>
+      <h2 class="lc-title">Check Your Token</h2>
+      <p class="lc-sub">Enter your token number to see your live queue position and estimated wait time</p>
+      <input
+        id="my-token-input"
+        type="number"
+        min="1"
+        max="999"
+        placeholder="Enter token no."
+        oninput="lookupMyToken(this.value)"
+        class="lookup-input"
+      />
       <div id="my-status-card" class="status-card hidden"></div>
     </div>
   </section>
 
-  <!-- ── QUEUE LIST ─────────────────────────────────────────── -->
-  <section class="queue-section">
-    <div class="qs-header">
-      <h2 class="qs-title">Queue at a Glance</h2>
-      <div class="qs-live-badge">
-        <span class="qs-live-dot"></span> Live Updates
+  <!-- LIVE QUEUE -->
+  <section class="section-wrap">
+    <div class="qs-head">
+      <h2 class="qs-title">Live Queue</h2>
+      <div class="qs-live">
+        <span class="qs-live-dot"></span>
+        Live Updates
       </div>
     </div>
-    <div id="waiting-list" class="waiting-list">
-      <div class="wl-empty">
-        <div class="wle-icon">☕</div>
-        <div class="wle-text">No one waiting right now</div>
-        <div class="wle-sub">Check back soon</div>
-      </div>
-    </div>
+    <div id="waiting-list" class="waiting-list"></div>
   </section>
 
-  <!-- ── SOON ALERT ─────────────────────────────────────────── -->
+  <!-- SOON ALERT -->
   <div id="soon-alert" class="soon-alert hidden" onclick="dismissAlert()">
     <div class="sa-backdrop"></div>
     <div class="sa-card">
-      <div class="sa-rings">
-        <div class="sa-ring sa-ring--1"></div>
-        <div class="sa-ring sa-ring--2"></div>
-      </div>
       <div class="sa-icon">🔔</div>
-      <div class="sa-title">Your turn is coming!</div>
-      <div class="sa-sub">Please get ready — you are next in line.</div>
-      <div class="sa-dismiss">Tap anywhere to dismiss</div>
+      <div class="sa-title">Get Ready!</div>
+      <div class="sa-sub">You are next in line. Please proceed to the reception.</div>
+      <button class="sa-btn" onclick="dismissAlert()">Okay, I'm Ready</button>
     </div>
   </div>
 
-  <!-- ── FOOTER ─────────────────────────────────────────────── -->
-  <footer class="patient-footer">
-    <span>Real-time updates via Socket.IO · No refresh needed</span>
-    <span id="last-update" class="footer-update">Waiting for data…</span>
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <span>Live updates via Socket.IO · No page refresh needed</span>
+    <span id="last-update" class="footer-update"></span>
   </footer>
 
   <script src="/socket.io/socket.io.js"></script>

@@ -4,114 +4,77 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ClinicQ — Receptionist Dashboard</title>
-  <meta name="description" content="Real-time clinic queue control panel. Add patients, call tokens, manage wait times." />
+  <meta name="description" content="Real-time clinic queue management. Add patients, call tokens, view wait times." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="receptionist.css" />
 </head>
 <body>
 
-  <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
   <aside class="sidebar">
     <div class="sidebar-logo">
       <span class="sl-icon">🏥</span>
-      <div>
-        <div class="sl-name">ClinicQ</div>
-        <div class="sl-role">Receptionist</div>
-      </div>
+      <div><div class="sl-name">ClinicQ</div><div class="sl-role">Receptionist Panel</div></div>
     </div>
-
     <nav class="sidebar-nav">
-      <div class="snav-label">QUEUE</div>
-      <a href="#" class="snav-item active" id="nav-dashboard">
-        <span class="snav-icon">⚡</span> Dashboard
-      </a>
-      <a href="#" class="snav-item" id="nav-history" onclick="showDonePanel()">
-        <span class="snav-icon">📋</span> Today's History
-        <span class="snav-count" id="snav-done-count">0</span>
-      </a>
-      <div class="snav-label" style="margin-top:24px">SETTINGS</div>
-      <a href="#" class="snav-item" id="nav-settings" onclick="showSettingsPanel()">
-        <span class="snav-icon">⚙️</span> Consultation Time
-      </a>
-      <a href="/patient.html" target="_blank" class="snav-item">
-        <span class="snav-icon">📱</span> Patient View ↗
-      </a>
-      <a href="/" class="snav-item">
-        <span class="snav-icon">🏠</span> Home
-      </a>
+      <div class="snav-label">Queue</div>
+      <a href="#" class="snav-item active" id="nav-dash"><span class="snav-icon">⚡</span> Dashboard</a>
+      <a href="#" class="snav-item" id="nav-hist" onclick="showDonePanel()"><span class="snav-icon">📋</span> Today's History <span class="snav-count" id="snav-done-count">0</span></a>
+      <div class="snav-label">Settings</div>
+      <a href="#" class="snav-item" id="nav-sett" onclick="showSettingsPanel()"><span class="snav-icon">⚙️</span> Avg Consult Time</a>
+      <a href="/patient.html" class="snav-item" target="_blank"><span class="snav-icon">📱</span> Patient View ↗</a>
+      <a href="/" class="snav-item"><span class="snav-icon">🏠</span> Back to Home</a>
     </nav>
-
-    <div class="sidebar-status">
-      <div id="sidebar-conn" class="sc-badge sc-connecting">
-        <span class="sc-dot"></span>
-        <span id="sc-label">Connecting…</span>
+    <div class="sidebar-footer">
+      <div class="sf-conn">
+        <div class="sf-dot" id="sf-dot"></div>
+        <span class="sf-conn-text" id="sf-text">Connecting…</span>
       </div>
-      <div class="sc-time" id="sc-time">--:--:--</div>
+      <div class="sf-time" id="sf-time">--:--:--</div>
     </div>
   </aside>
 
-  <!-- ── MAIN CONTENT ────────────────────────────────────────── -->
   <div class="main-wrap">
-
-    <!-- Top bar -->
     <header class="topbar">
-      <div class="topbar-left">
-        <h1 class="topbar-title">Queue Dashboard</h1>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="topbar-title">Queue Dashboard</span>
         <span class="topbar-date" id="topbar-date"></span>
       </div>
       <div class="topbar-right">
-        <div class="topbar-api-status" id="api-status">
-          <span class="tas-dot"></span>
-          <span>API Connected</span>
+        <div class="topbar-api">
+          <div class="topbar-api-dot"></div>
+          Server Online
         </div>
       </div>
     </header>
 
-    <!-- ── KPI STRIP ─────────────────────────────────────────── -->
     <div class="kpi-strip">
       <div class="kpi-card">
-        <div class="kpi-icon kpi-icon--blue">👥</div>
-        <div class="kpi-body">
-          <div class="kpi-value" id="kpi-waiting">0</div>
-          <div class="kpi-label">Waiting Now</div>
-        </div>
-        <div class="kpi-trend" id="kpi-waiting-trend"></div>
+        <div class="kpi-icon blue">👥</div>
+        <div class="kpi-body"><div class="kpi-val blue" id="kpi-waiting">0</div><div class="kpi-label">Waiting Now</div></div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon kpi-icon--green">✅</div>
-        <div class="kpi-body">
-          <div class="kpi-value kpi-value--green" id="kpi-served">0</div>
-          <div class="kpi-label">Served Today</div>
-        </div>
+        <div class="kpi-icon green">✅</div>
+        <div class="kpi-body"><div class="kpi-val green" id="kpi-served">0</div><div class="kpi-label">Served Today</div></div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon kpi-icon--purple">📊</div>
-        <div class="kpi-body">
-          <div class="kpi-value kpi-value--purple" id="kpi-avg">—</div>
-          <div class="kpi-label">Real Avg (min)</div>
-        </div>
+        <div class="kpi-icon purple">📊</div>
+        <div class="kpi-body"><div class="kpi-val purple" id="kpi-avg">—</div><div class="kpi-label">Avg Duration (min)</div></div>
         <div class="kpi-badge" id="kpi-data-badge">Manual</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon kpi-icon--teal">🧪</div>
-        <div class="kpi-body">
-          <div class="kpi-value kpi-value--teal" id="kpi-samples">0</div>
-          <div class="kpi-label">Data Samples</div>
-        </div>
+        <div class="kpi-icon teal">🧪</div>
+        <div class="kpi-body"><div class="kpi-val teal" id="kpi-samples">0</div><div class="kpi-label">Data Samples</div></div>
       </div>
     </div>
 
-    <!-- ── CONTENT GRID ───────────────────────────────────────── -->
     <div class="content-grid">
-
-      <!-- LEFT COLUMN -->
       <div class="left-col">
 
         <!-- Current Token -->
-        <div class="card card--glow">
-          <div class="card-label">NOW SERVING</div>
-          <div class="token-display" id="token-display">—</div>
+        <div class="card token-now-card">
+          <div class="token-card-label">Now Serving</div>
+          <div class="token-num" id="token-display">—</div>
           <div class="token-patient-name" id="token-patient-name">No patient in consultation</div>
           <div class="token-timer" id="token-timer"></div>
           <div class="token-progress-wrap" id="token-progress-wrap" style="display:none">
@@ -121,37 +84,32 @@
 
         <!-- Call Next -->
         <div class="card">
-          <div class="call-section">
-            <button id="btn-call-next" class="btn-call-next" onclick="callNext()">
-              <div class="bcn-icon">▶</div>
-              <div class="bcn-text">
-                <div class="bcn-main">Call Next Token</div>
-                <div class="bcn-sub" id="bcn-sub">No patients waiting</div>
-              </div>
-            </button>
+          <div class="card-title"><span class="card-title-dot"></span> Call Next</div>
+          <button id="btn-call-next" class="btn-call-next" onclick="callNext()">
+            <div class="bcn-icon">▶</div>
+            <div><div class="bcn-main">Call Next Token</div><div class="bcn-sub" id="bcn-sub">No patients waiting</div></div>
+          </button>
+          <div style="margin-top:8px">
             <button id="btn-undo" class="btn-undo hidden" onclick="undoCall()">
-              ↩ Undo <span id="undo-countdown" class="undo-cd"></span>
+              ↩ Undo Call &nbsp;<span id="undo-countdown" style="opacity:0.7;font-size:11px;"></span>
             </button>
           </div>
         </div>
 
         <!-- Add Patient -->
-        <div class="card" id="add-patient-card">
-          <div class="card-header">
-            <div class="card-title">Add Patient</div>
-            <div class="card-hint">Enter to submit instantly</div>
-          </div>
+        <div class="card">
+          <div class="card-title"><span class="card-title-dot"></span> Add Patient</div>
           <form id="add-patient-form" onsubmit="addPatient(event)">
             <div class="form-field">
               <label class="form-label">Full Name <span class="req">*</span></label>
               <input id="input-name" type="text" class="form-input" placeholder="e.g. Priya Sharma" autocomplete="off" maxlength="60" required autofocus />
             </div>
             <div class="form-field">
-              <label class="form-label">Phone <span class="form-optional">(optional)</span></label>
+              <label class="form-label">Phone <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">(optional)</span></label>
               <input id="input-phone" type="tel" class="form-input" placeholder="9876543210" maxlength="15" />
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn-primary" id="btn-add">Assign Token</button>
+              <button type="submit" class="btn-add">Assign Token</button>
               <button type="button" class="btn-add-call" onclick="addAndCall()">Add + Call Now</button>
             </div>
           </form>
@@ -160,45 +118,35 @@
 
       </div>
 
-      <!-- RIGHT COLUMN: Queue -->
       <div class="right-col">
 
         <!-- In Consultation Banner -->
         <div id="in-consult-banner" class="in-consult-banner hidden">
           <div class="icb-left">
             <div class="icb-dot"></div>
-            <div class="icb-text">
+            <div>
               <div class="icb-label">In Consultation</div>
               <div class="icb-name" id="icb-name">—</div>
             </div>
           </div>
-          <button class="icb-done-btn" id="icb-done-btn">✓ Mark Done</button>
+          <button class="icb-done" id="icb-done-btn">✓ Mark Done</button>
         </div>
 
-        <!-- Queue Table -->
-        <div class="card card--queue">
-          <div class="queue-head">
+        <!-- Queue Card -->
+        <div class="card queue-card">
+          <div class="qc-header">
             <div>
-              <div class="queue-title">Waiting Queue</div>
-              <div class="queue-sub" id="queue-sub">0 patients waiting</div>
+              <div class="qc-title">Waiting Queue</div>
+              <div class="qc-sub" id="queue-sub">0 patients waiting</div>
             </div>
-            <div class="queue-head-right">
-              <div class="queue-search-wrap">
-                <input type="text" id="queue-search" class="queue-search" placeholder="🔍 Search..." oninput="filterQueue(this.value)" />
-              </div>
-            </div>
+            <input type="text" class="queue-search" placeholder="🔍 Search patient…" oninput="filterQueue(this.value)" />
           </div>
-
           <div class="queue-table-wrap">
             <table class="queue-table">
               <thead>
                 <tr>
-                  <th>Pos</th>
-                  <th>Token</th>
-                  <th>Patient</th>
-                  <th>Check-in</th>
-                  <th>Est. Wait</th>
-                  <th></th>
+                  <th>#</th><th>Token</th><th>Patient</th>
+                  <th>Check-in</th><th>Est. Wait</th><th></th>
                 </tr>
               </thead>
               <tbody id="queue-tbody"></tbody>
@@ -206,34 +154,32 @@
             <div id="queue-empty" class="queue-empty">
               <div class="qe-icon">🗒️</div>
               <div class="qe-title">Queue is empty</div>
-              <div class="qe-sub">Add the first patient using the form on the left</div>
+              <div class="qe-sub">Add the first patient using the form</div>
             </div>
           </div>
         </div>
 
-        <!-- Settings panel (hidden by default) -->
-        <div id="settings-panel" class="card settings-panel hidden">
-          <div class="card-header">
-            <div class="card-title">⚙️ Avg Consultation Time</div>
-            <button class="panel-close" onclick="hidePanels()">✕</button>
+        <!-- Settings Panel (hidden) -->
+        <div id="settings-panel" class="card hidden">
+          <div class="panel-head">
+            <div class="card-title" style="margin:0"><span class="card-title-dot"></span> Avg Consultation Time</div>
+            <button class="panel-close" onclick="hidePanels()">✕ Close</button>
           </div>
-          <div class="settings-body">
-            <div class="slider-group">
-              <input type="range" id="avg-slider" min="1" max="60" value="10" step="1" oninput="onSliderInput(this.value)" />
-              <div class="slider-val-wrap">
-                <input type="number" id="avg-input" min="1" max="120" value="10" onchange="setAvgTime(this.value)" />
-                <span class="slider-unit">min</span>
-              </div>
+          <div class="slider-wrap">
+            <input type="range" id="avg-slider" min="1" max="60" value="10" step="1" oninput="onSliderInput(this.value)" />
+            <div class="slider-val">
+              <input type="number" id="avg-input" min="1" max="120" value="10" onchange="setAvgTime(this.value)" />
+              <span class="slider-unit">min</span>
             </div>
-            <p class="settings-note" id="settings-note">Using manually set value. Real data overrides after 2+ consultations.</p>
           </div>
+          <p class="settings-label" id="settings-note">Using manually set value. Real data will override after 2+ consultations complete.</p>
         </div>
 
-        <!-- Done panel (hidden by default) -->
-        <div id="done-panel" class="card done-panel hidden">
-          <div class="card-header">
-            <div class="card-title">✅ Completed Today</div>
-            <button class="panel-close" onclick="hidePanels()">✕</button>
+        <!-- Done Panel (hidden) -->
+        <div id="done-panel" class="card hidden">
+          <div class="panel-head">
+            <div class="card-title" style="margin:0"><span class="card-title-dot" style="background:var(--green)"></span> Completed Today</div>
+            <button class="panel-close" onclick="hidePanels()">✕ Close</button>
           </div>
           <div id="done-list" class="done-list"></div>
         </div>
@@ -242,9 +188,7 @@
     </div>
   </div>
 
-  <!-- ── TOAST ──────────────────────────────────────────────── -->
   <div id="toast-container" class="toast-container"></div>
-
   <script src="/socket.io/socket.io.js"></script>
   <script src="receptionist.js"></script>
 </body>
