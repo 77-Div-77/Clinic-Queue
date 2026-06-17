@@ -22,7 +22,8 @@ const sfDot  = document.getElementById('sf-dot');
 const sfText = document.getElementById('sf-text');
 socket.on('connect', () => {
   sfDot.className = 'sf-dot online'; sfText.textContent = 'Connected';
-  const today = new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   document.getElementById('history-date').value = today;
   loadHistory(today);
 });

@@ -43,6 +43,13 @@
       <div class="topbar-title">
         <button id="sidebar-toggle" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--text);">&#9776;</button>
         Patients Directory
+        <span class="topbar-date" id="topbar-date"></span>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-api">
+          <div class="topbar-api-dot"></div>
+          Server Online
+        </div>
       </div>
     </header>
     
@@ -50,8 +57,7 @@
       <div class="card patients-card">
         <div class="qc-header" style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
           <div>
-            <div style="font-size:15px;font-weight:800;color:var(--text);">Patients Directory</div>
-            <div id="patients-count" style="font-size:11px;color:var(--text-muted);margin-top:2px;">Loading…</div>
+            <div id="patients-count" style="font-size:12px;font-weight:700;color:var(--blue);">Loading…</div>
           </div>
           <input id="patients-search" type="text" placeholder="🔍 Search name, phone or ID…" oninput="filterPatients()" class="queue-search" style="width:220px;" />
         </div>
