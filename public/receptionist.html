@@ -125,17 +125,32 @@
           <div id="token-confirm" class="token-confirm hidden"></div>
         </div>
 
-        <!-- Avg Consultation Time -->
+        <!-- Wait Time Controls -->
         <div class="card">
-          <div class="card-title"><span class="card-title-dot"></span> Avg Consultation Time</div>
-          <div class="slider-wrap">
-            <input type="range" id="avg-slider" min="1" max="60" value="10" step="1" oninput="onSliderInput(this.value)" />
-            <div class="slider-val">
-              <input type="number" id="avg-input" min="1" max="120" value="10" onchange="setAvgTime(this.value)" />
-              <span class="slider-unit">min</span>
+          <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span><span class="card-title-dot"></span> Wait Time Settings</span>
+          </div>
+          <div class="wt-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom:12px;">
+            <div class="wt-field">
+              <label style="font-size:10px;">NORMAL (MIN)</label>
+              <input type="number" id="wt-normal" min="1" max="120" value="10" oninput="onSettingsInput()" />
+              <div id="wt-auto-normal" style="font-size:11px; color:var(--text-muted); margin-top:4px;">Auto: --</div>
+            </div>
+            <div class="wt-field">
+              <label style="font-size:10px;">EMERGENCY (MIN)</label>
+              <input type="number" id="wt-emergency" min="1" max="120" value="10" oninput="onSettingsInput()" />
+              <div id="wt-auto-emergency" style="font-size:11px; color:var(--text-muted); margin-top:4px;">Auto: --</div>
+            </div>
+            <div class="wt-field">
+              <label style="font-size:10px;">QUICK CONSULT (MIN)</label>
+              <input type="number" id="wt-quick" min="1" max="120" value="4" oninput="onSettingsInput()" />
+              <div id="wt-auto-quick" style="font-size:11px; color:var(--text-muted); margin-top:4px;">Auto: --</div>
             </div>
           </div>
-          <p class="settings-label" id="settings-note">Using manually set value. Real data will override after 2+ consultations complete.</p>
+          <div class="wt-actions" style="justify-content:space-between; align-items:center;">
+            <span id="wt-note" class="settings-label" style="flex:1;">Auto-calculating based on real data. (Need 2+ consults per category)</span>
+            <button id="btn-save-wt" class="btn-primary" style="padding:6px 16px; font-size:12px; display:none;" onclick="saveManualTimes()">Save changes</button>
+          </div>
         </div>
 
       </div>
@@ -156,12 +171,25 @@
 
         <!-- Queue Card -->
         <div class="card queue-card">
-          <div class="qc-header">
-            <div>
-              <div class="qc-title">Waiting Queue</div>
-              <div class="qc-sub" id="queue-sub">0 patients waiting</div>
+          <!-- QUEUE SECTION -->
+          <div style="padding: 16px 20px 16px; border-bottom: 1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+              <div style="display:flex; align-items:center; gap:24px;">
+                <div>
+                  <div class="qc-title" style="font-size: 18px;">Waiting Queue</div>
+                  <div class="qc-sub" id="queue-sub" style="font-size: 13px;">0 patients waiting</div>
+                </div>
+                <input type="text" class="queue-search" style="padding: 8px 14px; font-size: 13px; width: 300px;" placeholder="🔍 Search patient…" oninput="filterQueue(this.value)" />
+              </div>
+              <div style="display:flex; align-items:center; gap:20px;">
+                <div class="wt-toggle" style="background:var(--bg); padding:6px 12px; border-radius:6px; border:1px solid var(--border); font-size:13px; font-weight:600;">
+                  <span style="margin-right:8px;">Preview:</span>
+                  <label style="margin-right:8px;"><input type="radio" name="preview_mode" id="preview-auto" value="auto" onchange="updateLocalPreview()" checked> Auto</label>
+                  <label><input type="radio" name="preview_mode" id="preview-manual" value="manual" onchange="updateLocalPreview()"> Manual</label>
+                </div>
+                <button id="btn-apply-mode" class="btn-primary" style="padding:8px 18px; font-size:13px; font-weight:700; display:none;" onclick="applyGlobalMode()">Apply</button>
+              </div>
             </div>
-            <input type="text" class="queue-search" placeholder="🔍 Search patient…" oninput="filterQueue(this.value)" />
           </div>
           <div class="queue-table-wrap">
             <table class="queue-table">
