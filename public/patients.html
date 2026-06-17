@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Clinic Queue — Patients Directory</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏥</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="receptionist.css" />
   <style>
@@ -12,6 +13,7 @@
 </head>
 <body>
 
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
   <aside class="sidebar">
     <div class="sidebar-logo" onclick="window.location.href='receptionist.html'" style="cursor:pointer;">
       <div class="sl-icon">🏥</div>
@@ -80,8 +82,8 @@
 
   <div id="toast-container" class="toast-container"></div>
   <script>
-    if (sessionStorage.getItem('rcp_auth') !== '1') window.location.replace('/?signin=1');
-    function signOut() { sessionStorage.removeItem('rcp_auth'); window.location.href = '/'; }
+    if (!document.cookie.includes('rcp_auth=1')) window.location.replace('/?signin=1');
+    function signOut() { document.cookie = 'rcp_auth=; Max-Age=0; path=/;'; window.location.href = '/'; }
   </script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="patients.js"></script>

@@ -21,6 +21,30 @@ const io = new Server(server, { cors: { origin: '*' } });
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ── Auth Endpoint ─────────────────────────────────────────────
+app.post('/api/login', (req, res) => {
+  const { password } = req.body;
+  if (password === (process.env.ADMIN_PASSWORD || 'admin123')) {
+    res.cookie('rcp_auth', '1', { maxAge: 24 * 60 * 60 * 1000, httpOnly: false });
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ success: false });
+  }
+});
+
+// ── Protect Private Pages ─────────────────────────────────────
+app.use((req, res, next) => {
+  if (req.path === '/receptionist.html' || req.path === '/history.html') {
+    const cookieHeader = req.headers.cookie || '';
+    if (!cookieHeader.includes('rcp_auth=1')) {
+      return res.redirect('/?signin=1');
+    }
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ── In-memory state (single source of truth) ──────────────────
@@ -62,6 +86,12 @@ function toTitleCase(str) {
   return str.replace(/\w\S*/g, function(txt) {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
   });
+}
+
+function mockSendSMS(phone, message) {
+  if (!phone) return;
+  console.log(`[MOCK SMS] To ${phone}: ${message}`);
+  io.emit('mock_sms_sent', { phone, message });
 }
 
 // ── Wait time helper ─────────────────────────────────────
@@ -108,13 +138,13 @@ function computeWaitTimes() {
   const waitingPatients = state.queue
     .filter(p => STATUS_PRIORITY[p.status])
     .sort((a, b) => {
-      const pA = STATUS_PRIORITY[a.status];
-      const pB = STATUS_PRIORITY[b.status];
-      if (pA !== pB) return pA - pB;
-
       const idxA = a.sortIndex !== null && a.sortIndex !== undefined ? a.sortIndex : 999999;
       const idxB = b.sortIndex !== null && b.sortIndex !== undefined ? b.sortIndex : 999999;
       if (idxA !== idxB) return idxA - idxB;
+
+      const pA = STATUS_PRIORITY[a.status];
+      const pB = STATUS_PRIORITY[b.status];
+      if (pA !== pB) return pA - pB;
 
       return new Date(a.checkInTime) - new Date(b.checkInTime);
     });
@@ -159,11 +189,14 @@ function buildBroadcastPayload() {
   }));
 
   const normalDurs = state.waitSettings.durations.normal || [];
-  const sampleCount = normalDurs.length;
+  const emgDurs = state.waitSettings.durations.emergency || [];
+  const quickDurs = state.waitSettings.durations.quick || [];
+  const allDurs = [...normalDurs, ...emgDurs, ...quickDurs];
+  
+  const sampleCount = allDurs.length;
   let effectiveAvgMinutes = state.waitSettings.manualTimes.normal || 10;
   if (sampleCount >= 2) {
-    const recent = normalDurs.slice(-10);
-    effectiveAvgMinutes = Math.round(recent.reduce((a, b) => a + b, 0) / recent.length / 60000);
+    effectiveAvgMinutes = Math.round(allDurs.reduce((a, b) => a + b, 0) / allDurs.length / 60000);
   }
 
   const nextPatient = enrichedWaiting[0];
@@ -309,6 +342,19 @@ async function checkAndResetDay() {
 }
 setInterval(checkAndResetDay, 60000);
 
+// Live wait time ticker
+setInterval(() => {
+  if (state.queue.some(p => p.status === 'in-consultation')) {
+    const times = computeWaitTimes().map(p => ({
+      token: p.token,
+      estWaitMinAuto: p.estWaitMinAuto,
+      estWaitMinManual: p.estWaitMinManual,
+      isNext: p.isNext
+    }));
+    io.emit('wait_time_tick', times);
+  }
+}, 10000);
+
 // ── Socket.IO event handlers ───────────────────────────────────
 io.on('connection', (socket) => {
   socket.emit('queue_update', buildBroadcastPayload());
@@ -338,6 +384,7 @@ io.on('connection', (socket) => {
     persistToDb();
     broadcast();
     socket.emit('patient_added', { token, name: patient.name });
+    mockSendSMS(patient.phone, `ClinicQ: You are added to the queue! Your token is #${token}. Check status live here: ${process.env.APP_URL || 'http://localhost:3000'}/patient.html`);
   });
 
   socket.on('add_emergency', (data) => {
@@ -493,13 +540,13 @@ io.on('connection', (socket) => {
     const waitingPatients = state.queue
       .filter(p => STATUS_PRIORITY[p.status])
       .sort((a, b) => {
-        const pA = STATUS_PRIORITY[a.status];
-        const pB = STATUS_PRIORITY[b.status];
-        if (pA !== pB) return pA - pB;
-
         const idxA = a.sortIndex !== null && a.sortIndex !== undefined ? a.sortIndex : 999999;
         const idxB = b.sortIndex !== null && b.sortIndex !== undefined ? b.sortIndex : 999999;
         if (idxA !== idxB) return idxA - idxB;
+
+        const pA = STATUS_PRIORITY[a.status];
+        const pB = STATUS_PRIORITY[b.status];
+        if (pA !== pB) return pA - pB;
 
         return new Date(a.checkInTime) - new Date(b.checkInTime);
       });
@@ -531,6 +578,13 @@ io.on('connection', (socket) => {
 
     persistToDb();
     broadcast();
+    mockSendSMS(nextPatient.phone, `ClinicQ: It's your turn! Please proceed to the doctor.`);
+    
+    // Also check who is next
+    const waitingAfter = waitingPatients[1];
+    if (waitingAfter) {
+      mockSendSMS(waitingAfter.phone, `ClinicQ: You are next in line! Please be ready.`);
+    }
   });
 
   socket.on('mark_done', (data) => {
@@ -580,7 +634,15 @@ io.on('connection', (socket) => {
       if (prevPatient) {
         prevPatient.status = 'in-consultation';
         prevPatient.consultEndTime = null;
+        prevPatient.consultStartTime = new Date().toISOString();
         state.totalServed = Math.max(0, state.totalServed - 1);
+        
+        if (prevPatient.elapsedMs > 0) {
+          const cat = getPatientCategory(prevPatient);
+          const arr = state.waitSettings.durations[cat];
+          const idx = arr.lastIndexOf(prevPatient.elapsedMs);
+          if (idx !== -1) arr.splice(idx, 1);
+        }
       }
     }
 
@@ -682,6 +744,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {});
+
+  socket.on('send_daily_report', async (data) => {
+    const { date } = data;
+    console.log(`[MOCK EMAIL] Sending daily report for ${date} to manager@clinic.com...`);
+    socket.emit('report_sent', { message: `Email report sent to manager@clinic.com!` });
+  });
 });
 
 // ── REST endpoint — History by Date ───────────────────────────

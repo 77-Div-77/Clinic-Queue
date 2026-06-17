@@ -12,6 +12,10 @@ let searchFilter = '';
 let currentHistoryDate = new Date().toISOString().split('T')[0]; // today
 let sortableInstance = null;
 
+// ── VOICE ALERTS ─────────────────────────────────────────────
+let soundEnabled = true;
+let previousVoiceToken = null;
+
 // ── SIDEBAR TOGGLE ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const toggle = document.getElementById('sidebar-toggle');
@@ -41,6 +45,16 @@ socket.on('connect_error', () => {
 // ── MAIN STATE ───────────────────────────────────────────────
 socket.on('queue_update', (data) => {
   if (data.serverTime) timeOffset = data.serverTime - Date.now();
+  
+  if (previousVoiceToken !== data.currentToken && data.currentToken > 0) {
+    if (soundEnabled && window.speechSynthesis) {
+      const u = new SpeechSynthesisUtterance(`Token number ${data.currentToken}, please proceed.`);
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    }
+    previousVoiceToken = data.currentToken;
+  }
+  
   currentState = data;
   renderAll(data);
   if (pendingAddAndCall) { pendingAddAndCall = false; socket.emit('call_next'); }
@@ -57,6 +71,44 @@ socket.on('patient_added', (data) => {
   setTimeout(() => el.classList.add('hidden'), 4000);
   showToast(`Token #${data.token} — ${data.name}`, 'success');
   document.getElementById('input-name').focus();
+});
+
+socket.on('mock_sms_sent', (data) => {
+  showToast(`💬 SMS Sent to ${data.phone}: "${data.message}"`, 'success');
+});
+
+socket.on('wait_time_tick', (times) => {
+  if (!currentState || !currentState.queue) return;
+  const localMode = document.getElementById('preview-auto').checked ? 'auto' : 'manual';
+  
+  times.forEach(t => {
+    const p = currentState.queue.find(q => q.token === t.token);
+    if (p) {
+      p.estWaitMinAuto = t.estWaitMinAuto;
+      p.estWaitMinManual = t.estWaitMinManual;
+      p.isNext = t.isNext;
+      
+      const row = document.querySelector(`tr[data-token="${p.token}"]`);
+      if (row) {
+        const chip = row.querySelector('.wait-chip');
+        if (chip) {
+          const estWait = localMode === 'auto' ? t.estWaitMinAuto : t.estWaitMinManual;
+          let waitLabel = `~${Math.max(0, estWait)} min`;
+          let waitCls = estWait <= 10 ? 'short' : 'long';
+          if (t.isNext) { waitLabel = 'Next'; waitCls = 'short next'; }
+          
+          if (p.status === 'waiting-emergency') waitCls = 'emergency';
+          else if (p.status === 'quick-consult') waitCls = 'quick-consult';
+          else if (p.status === 'on-hold') waitCls = 'on-hold';
+          
+          if (chip.textContent !== waitLabel) {
+            chip.textContent = waitLabel;
+            chip.className = `wait-chip ${waitCls}`;
+          }
+        }
+      }
+    }
+  });
 });
 
 // ── RENDER ───────────────────────────────────────────────────
@@ -366,14 +418,18 @@ function addPatient(e) {
   document.getElementById('add-patient-form').reset();
 }
 function addEmergency() {
-  const name = document.getElementById('input-name').value;
-  const phone = document.getElementById('input-phone').value;
-  if (name) socket.emit('add_emergency', { name, phone });
+  const name = document.getElementById('input-name').value.trim();
+  const phone = document.getElementById('input-phone').value.trim();
+  if (!name) { showToast('Patient name is required', 'error'); return; }
+  socket.emit('add_emergency', { name, phone });
+  document.getElementById('add-patient-form').reset();
 }
 function addQuickConsult() {
-  const name = document.getElementById('input-name').value;
-  const phone = document.getElementById('input-phone').value;
-  if (name) socket.emit('add_quick_consult', { name, phone });
+  const name = document.getElementById('input-name').value.trim();
+  const phone = document.getElementById('input-phone').value.trim();
+  if (!name) { showToast('Patient name is required', 'error'); return; }
+  socket.emit('add_quick_consult', { name, phone });
+  document.getElementById('add-patient-form').reset();
 }
 function quickConsult(token)    { socket.emit('quick_consult', { token }); }
 function callNext()             { socket.emit('call_next'); }
@@ -453,3 +509,36 @@ function formatExactTime(ms) {
   return `${m}m ${s}s`; 
 }
 document.getElementById('input-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('add-patient-form').requestSubmit(); }});
+
+// ── MOBILE SIDEBAR ───────────────────────────────────────────
+const sidebar = document.querySelector('.sidebar');
+const backdrop = document.getElementById('sidebar-backdrop');
+const toggleBtn = document.getElementById('sidebar-toggle');
+
+if(toggleBtn) {
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.add('mobile-open');
+    if (backdrop) backdrop.classList.add('show');
+  });
+}
+if(backdrop) {
+  backdrop.addEventListener('click', () => {
+    sidebar.classList.remove('mobile-open');
+    backdrop.classList.remove('show');
+  });
+}
+
+const btnSound = document.getElementById('toggle-sound');
+if (btnSound) {
+  btnSound.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    btnSound.innerHTML = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+  });
+}
+
+function showQRModal() {
+  const url = window.location.origin + '/patient.html';
+  const qrImg = document.getElementById('qr-img');
+  qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&margin=10`;
+  document.getElementById('qr-modal').classList.remove('hidden');
+}

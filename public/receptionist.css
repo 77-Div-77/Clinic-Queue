@@ -287,11 +287,21 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--b
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 /* ── RESPONSIVE ── */
+#sidebar-toggle { display: none; }
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(2px); }
+.sidebar-backdrop.show { display: block; }
+
 @media (max-width: 1024px) {
-  .sidebar { transform: translateX(-100%); }
+  #sidebar-toggle { display: inline-block; margin-right: 12px; }
+  .sidebar { transform: translateX(-100%); z-index: 9999; }
+  .sidebar.mobile-open { transform: translateX(0); }
   .main-wrap { margin-left: 0; }
   .content-grid { grid-template-columns: 1fr; }
   .kpi-strip { grid-template-columns: 1fr 1fr; }
+  .queue-table-wrap { overflow-x: auto; white-space: nowrap; }
+}
+@media (max-width: 480px) {
+  .kpi-strip { grid-template-columns: 1fr; }
 }
 
 /* ── SORTABLE TABLE HEADERS ── */

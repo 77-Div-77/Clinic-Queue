@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ClinicQ — Digital Queue Management System for Clinics</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏥</text></svg>">
   <meta name="description" content="Replace paper token slips with ClinicQ — India's smart digital queue system. Patients see live wait times on their phone. Receptionists manage in seconds." />
   <meta name="keywords" content="clinic queue management, digital token system, patient waiting room, OPD queue, hospital token system, real-time queue India" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1179,7 +1180,7 @@
 
 <script>
   function openSignIn() {
-    if (sessionStorage.getItem('rcp_auth') === '1') { window.location.href='/receptionist.html'; return; }
+    if (document.cookie.includes('rcp_auth=1')) { window.location.href='/receptionist.html'; return; }
     const ov = document.getElementById('signin-overlay');
     ov.style.display = 'flex';
     setTimeout(()=>document.getElementById('si-user').focus(), 100);
@@ -1191,17 +1192,26 @@
     document.getElementById('si-user').value = '';
     document.getElementById('si-pass').value = '';
   }
-  function doSignIn() {
+  async function doSignIn() {
     const user = document.getElementById('si-user').value.trim();
     const pass = document.getElementById('si-pass').value;
-    if (user === 'RCP' && pass === '123') {
-      sessionStorage.setItem('rcp_auth', '1');
-      closeSignIn();
-      window.location.href = '/receptionist.html';
-    } else {
-      document.getElementById('si-err').style.display = 'block';
-      document.getElementById('si-pass').value = '';
-      document.getElementById('si-pass').focus();
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeSignIn();
+        window.location.href = '/receptionist.html';
+      } else {
+        document.getElementById('si-err').style.display = 'block';
+        document.getElementById('si-pass').value = '';
+        document.getElementById('si-pass').focus();
+      }
+    } catch (e) {
+      alert("Error connecting to server.");
     }
   }
   // Auto-open modal if redirected from dashboard with ?signin=1

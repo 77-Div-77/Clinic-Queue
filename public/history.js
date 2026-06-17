@@ -1,12 +1,21 @@
 const socket = io();
 
-// ── SIDEBAR TOGGLE & CLOCK ──────────────────────────────────
+// ── MOBILE SIDEBAR ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('sidebar-toggle');
-  if (toggle) {
-    toggle.addEventListener('click', () => {
-      document.querySelector('.sidebar')?.classList.toggle('collapsed');
-      document.querySelector('.main-wrap')?.classList.toggle('collapsed');
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+
+  if(toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.add('mobile-open');
+      if (backdrop) backdrop.classList.add('show');
+    });
+  }
+  if(backdrop) {
+    backdrop.addEventListener('click', () => {
+      sidebar.classList.remove('mobile-open');
+      backdrop.classList.remove('show');
     });
   }
 });
@@ -47,6 +56,18 @@ function loadHistory(dateStr) {
   });
 }
 
+function sendDailyReport() {
+  const dateStr = document.getElementById('history-date').value;
+  socket.emit('send_daily_report', { date: dateStr });
+}
+
+socket.on('report_sent', (data) => {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast toast--success`; t.textContent = data.message; c.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+});
+
 // ── STATE ────────────────────────────────────────────────────
 let allHistoryData = [];
 let hSortKey = 'token';
@@ -71,6 +92,8 @@ function filterHistory() {
 function applyHistoryView() {
   const q = (document.getElementById('history-search')?.value || '').toLowerCase();
   let data = [...allHistoryData];
+
+  updateHistoryStats(data);
 
   // Filter
   if (q) {
@@ -150,4 +173,47 @@ function escHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+// ── STATS ────────────────────────────────────────────────────
+function updateHistoryStats(dataArray) {
+  const total = dataArray.length;
+  document.getElementById('h-kpi-total').textContent = total;
+
+  if (total === 0) {
+    document.getElementById('h-kpi-avg').textContent = '—';
+    document.getElementById('h-kpi-peak').textContent = '—';
+    return;
+  }
+
+  let totalMs = 0;
+  const hourCounts = {};
+
+  dataArray.forEach(p => {
+    if (p.elapsedMs) totalMs += p.elapsedMs;
+    if (p.checkInTime) {
+      const h = new Date(p.checkInTime).getHours();
+      hourCounts[h] = (hourCounts[h] || 0) + 1;
+    }
+  });
+
+  const avgMs = totalMs / total;
+  const m = Math.floor(avgMs / 60000);
+  const s = Math.floor((avgMs % 60000) / 1000);
+  document.getElementById('h-kpi-avg').textContent = `${m}m ${s}s`;
+
+  let peakHour = -1;
+  let maxCount = -1;
+  for (const [h, count] of Object.entries(hourCounts)) {
+    if (count > maxCount) { maxCount = count; peakHour = parseInt(h); }
+  }
+
+  if (peakHour !== -1) {
+    const ampm = peakHour >= 12 ? 'PM' : 'AM';
+    let h12 = peakHour % 12;
+    if (h12 === 0) h12 = 12;
+    document.getElementById('h-kpi-peak').textContent = `${h12} ${ampm} (${maxCount} pts)`;
+  } else {
+    document.getElementById('h-kpi-peak').textContent = '—';
+  }
 }

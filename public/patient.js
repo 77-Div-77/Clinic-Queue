@@ -21,9 +21,34 @@ socket.on('disconnect', () => {
   connText.textContent = 'Reconnecting…';
 });
 
+// ── AUDIO ALERT ────────────────────────────────────────────
+function playDing() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch(e) {}
+}
+
+let previousDingToken = null;
+
 // ── MAIN UPDATE ────────────────────────────────────────────
 socket.on('queue_update', (data) => {
   if (data.serverTime) timeOffset = data.serverTime - Date.now();
+  
+  if (previousDingToken !== null && previousDingToken !== data.currentToken && data.currentToken > 0) {
+    playDing();
+  }
+  previousDingToken = data.currentToken;
+
   currentState = data;
   renderHero(data);
   renderStats(data);
@@ -31,6 +56,59 @@ socket.on('queue_update', (data) => {
   updateFooter();
   if (myToken !== null) doLookup(myToken, data);
   checkSoonAlert(data);
+});
+
+socket.on('wait_time_tick', (times) => {
+  if (!currentState || !currentState.queue) return;
+  const globalMode = currentState.waitSettings?.mode || 'auto';
+
+  times.forEach(t => {
+    const p = currentState.queue.find(q => q.token === t.token);
+    if (p) {
+      p.estWaitMinAuto = t.estWaitMinAuto;
+      p.estWaitMinManual = t.estWaitMinManual;
+      p.isNext = t.isNext;
+
+      const estWait = globalMode === 'auto' ? t.estWaitMinAuto : t.estWaitMinManual;
+      
+      const item = document.querySelector(`.wl-item[data-token="${t.token}"]`);
+      if (item) {
+        const waitWrap = item.querySelector('.wl-wait');
+        const waitVal = item.querySelector('.wl-wait-val');
+        const waitUnit = item.querySelector('.wl-wait-unit');
+        
+        if (waitWrap && waitVal && waitUnit) {
+          let wLabel = `~${Math.max(0, estWait)}`;
+          let wUnit = 'min';
+          let wCls = estWait <= 8 ? 'short' : 'long';
+          if (t.isNext) { wLabel = 'Next'; wUnit = ''; wCls = 'short next'; }
+          
+          if (p.status === 'waiting-emergency') wCls = 'emergency';
+          else if (p.status === 'quick-consult') wCls = 'quick-consult';
+          else if (p.status === 'on-hold') wCls = 'on-hold';
+          
+          if (waitVal.textContent !== wLabel) {
+            waitVal.textContent = wLabel;
+            waitUnit.textContent = wUnit;
+            waitWrap.className = `wl-wait ${wCls}`;
+          }
+        }
+      }
+      
+      if (myToken === t.token) {
+        const myCard = document.getElementById('my-status-card');
+        if (myCard && !myCard.classList.contains('hidden') && myCard.classList.contains('waiting')) {
+           const scWait = myCard.querySelector('.sc-wait');
+           if (scWait) {
+             const newWaitTxt = t.isNext ? 'Next' : (estWait <= 1 ? 'Any moment now' : `~${estWait} min wait`);
+             if (scWait.textContent !== newWaitTxt) {
+               scWait.textContent = newWaitTxt;
+             }
+           }
+        }
+      }
+    }
+  });
 });
 
 // ── HERO ───────────────────────────────────────────────────
@@ -138,7 +216,7 @@ function renderQueue(data) {
     }
 
     return `
-      <div class="wl-item${badgeCls ? ' '+badgeCls : ''}${isMine ? ' mine' : ''}">
+      <div class="wl-item${badgeCls ? ' '+badgeCls : ''}${isMine ? ' mine' : ''}" data-token="${p.token}">
         <div class="wl-pos">${idx + 1}</div>
         <div class="wl-token${badgeCls ? ' '+badgeCls : ''}${isMine ? ' mine' : ''}">${p.token}</div>
         <div class="wl-info">

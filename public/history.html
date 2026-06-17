@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Clinic Queue — History</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏥</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="receptionist.css" />
   <style>
@@ -13,6 +14,7 @@
 </head>
 <body>
 
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
   <aside class="sidebar">
     <div class="sidebar-logo" onclick="window.location.href='receptionist.html'" style="cursor:pointer;">
       <div class="sl-icon">🏥</div>
@@ -59,9 +61,26 @@
         <div class="qc-header" style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
           <div style="display:flex;align-items:center;gap:12px;">
             <input type="date" id="history-date" class="form-input" style="padding:5px 8px;width:auto;font-size:12px;" />
+            <button class="btn" style="background:#e0f2fe;color:#0284c7;border:1px solid #7dd3fc;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;" onclick="sendDailyReport()">📧 Email Report</button>
           </div>
           <input id="history-search" type="text" placeholder="🔍 Search name or token…" oninput="filterHistory()" class="queue-search" style="width:210px;" />
         </div>
+        
+        <div class="kpi-strip" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 0; border-bottom: 1px solid var(--border); border-radius: 0; box-shadow: none;">
+          <div class="kpi-card" style="box-shadow:none;border:none;">
+            <div class="kpi-icon green">✅</div>
+            <div class="kpi-body"><div class="kpi-val green" id="h-kpi-total">0</div><div class="kpi-label">Total Served</div></div>
+          </div>
+          <div class="kpi-card" style="box-shadow:none;border:none;">
+            <div class="kpi-icon purple">⏱</div>
+            <div class="kpi-body"><div class="kpi-val purple" id="h-kpi-avg">—</div><div class="kpi-label">Avg Duration</div></div>
+          </div>
+          <div class="kpi-card" style="box-shadow:none;border:none;">
+            <div class="kpi-icon amber">📈</div>
+            <div class="kpi-body"><div class="kpi-val amber" id="h-kpi-peak">—</div><div class="kpi-label">Peak Hour</div></div>
+          </div>
+        </div>
+
         <div class="queue-table-wrap">
           <table class="queue-table">
             <thead>
@@ -82,8 +101,8 @@
 
   <div id="toast-container" class="toast-container"></div>
   <script>
-    if (sessionStorage.getItem('rcp_auth') !== '1') window.location.replace('/?signin=1');
-    function signOut() { sessionStorage.removeItem('rcp_auth'); window.location.href = '/'; }
+    if (!document.cookie.includes('rcp_auth=1')) window.location.replace('/?signin=1');
+    function signOut() { document.cookie = 'rcp_auth=; Max-Age=0; path=/;'; window.location.href = '/'; }
   </script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="history.js"></script>

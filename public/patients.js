@@ -1,12 +1,21 @@
 const socket = io();
 
-// ── SIDEBAR TOGGLE & CLOCK ──────────────────────────────────
+// ── MOBILE SIDEBAR ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('sidebar-toggle');
-  if (toggle) {
-    toggle.addEventListener('click', () => {
-      document.querySelector('.sidebar')?.classList.toggle('collapsed');
-      document.querySelector('.main-wrap')?.classList.toggle('collapsed');
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+
+  if(toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.add('mobile-open');
+      if (backdrop) backdrop.classList.add('show');
+    });
+  }
+  if(backdrop) {
+    backdrop.addEventListener('click', () => {
+      sidebar.classList.remove('mobile-open');
+      backdrop.classList.remove('show');
     });
   }
 });
