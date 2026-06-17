@@ -47,19 +47,18 @@ function renderHero(data) {
   if (data.currentToken > 0 && data.inConsultation?.length > 0) {
     const p = data.inConsultation[0];
     sub.innerHTML = `In consultation right now${p.isEmergency ? ' <span style="color:var(--red);font-weight:700">[Emergency]</span>' : ''}`;
-    startHeroTimer(p, data.avgConsultMinutes);
+    startHeroTimer(p);
   } else {
     sub.textContent = data.currentToken > 0 ? 'Consultation in progress' : 'Waiting for first patient to be called';
     stopHeroTimer();
   }
 }
-function startHeroTimer(patient, avgMin) {
+function startHeroTimer(patient) {
   stopHeroTimer();
   const startTime = new Date(patient.consultStartTime).getTime();
   if (!startTime && !patient.liveElapsedMs) return;
   
-  const allottedMin = patient.isEmergency ? 10 : (patient.isQuickConsult ? 2 : avgMin);
-  const avgMs = allottedMin * 60000;
+  const avgMs = patient.allottedMs || 600000;
   const el = document.getElementById('hero-timer');
   heroTimerInterval = setInterval(() => {
     const adjustedNow = Date.now() + timeOffset;
@@ -90,8 +89,9 @@ function renderStats(data) {
 }
 function setVal(id, val) {
   const el = document.getElementById(id);
-  if (!el || el.textContent === String(val)) return;
-  el.textContent = val;
+  const displayVal = (val === undefined || val === null) ? '—' : String(val);
+  if (!el || el.textContent === displayVal) return;
+  el.textContent = displayVal;
   el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
 }
 
@@ -109,11 +109,20 @@ function renderQueue(data) {
     const isQuick = p.status === 'quick-consult';
     const isOnHold = p.status === 'on-hold';
 
-    let waitLabel = `~${Math.max(0, p.estimatedWaitMin)}`;
+    const globalMode = data.waitSettings?.mode || 'auto';
+    const estWait = globalMode === 'auto' ? p.estWaitMinAuto : p.estWaitMinManual;
+
+    let waitLabel = `~${Math.max(0, estWait)}`;
     let waitUnit = 'min';
-    let waitCls = p.estimatedWaitMin <= 8 ? 'short' : 'long';
+    let waitCls = estWait <= 8 ? 'short' : 'long';
     let badgeCls = '';
     let nameTag = '';
+
+    if (p.isNext) {
+      waitLabel = 'Next';
+      waitUnit = '';
+      waitCls = 'short next';
+    }
 
     if (isEmergency) {
         waitCls = 'emergency'; badgeCls = 'emergency';
@@ -174,12 +183,14 @@ function doLookup(token, data) {
     card.className = 'status-card in-consult';
     card.innerHTML = `<div class="sc-token">Token #${token}</div><div class="sc-line">🟢 You are currently being seen by the doctor!</div>`;
   } else if (inWaiting) {
-    const isNext = inWaiting.tokensAhead === 0;
-    card.className = `status-card ${isNext ? 'next' : 'waiting'}`;
+    const globalMode = data?.waitSettings?.mode || 'auto';
+    const estWait = globalMode === 'auto' ? inWaiting.estWaitMinAuto : inWaiting.estWaitMinManual;
+
+    card.className = `status-card ${inWaiting.isNext ? 'next' : 'waiting'}`;
     card.innerHTML = `
       <div class="sc-token">Token #${token}</div>
-      <div class="sc-line">${isNext ? '🟢 You are next! Please be ready.' : `⏳ ${inWaiting.tokensAhead} patient${inWaiting.tokensAhead > 1 ? 's' : ''} ahead of you`}</div>
-      <div class="sc-wait">${inWaiting.estimatedWaitMin <= 1 ? 'Any moment now' : `~${inWaiting.estimatedWaitMin} min wait`}</div>`;
+      <div class="sc-line">${inWaiting.isNext ? '🟢 You are next! Please be ready.' : `⏳ ${inWaiting.tokensAhead} patient${inWaiting.tokensAhead > 1 ? 's' : ''} ahead of you`}</div>
+      <div class="sc-wait">${inWaiting.isNext ? 'Next' : (estWait <= 1 ? 'Any moment now' : `~${estWait} min wait`)}</div>`;
   } else if (done) {
     card.className = 'status-card done';
     card.innerHTML = `<div class="sc-token">Token #${token}</div><div class="sc-line">✅ Your consultation is complete. Thank you for visiting!</div>`;
