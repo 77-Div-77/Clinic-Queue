@@ -82,8 +82,9 @@ function renderKPIs(data) {
 
 function animNum(id, val) {
   const el = document.getElementById(id);
-  if (!el || el.textContent === String(val)) return;
-  el.textContent = val;
+  const displayVal = (val === undefined || val === null) ? '—' : String(val);
+  if (!el || el.textContent === displayVal) return;
+  el.textContent = displayVal;
   el.classList.remove('num-pop'); void el.offsetWidth; el.classList.add('num-pop');
 }
 
@@ -104,7 +105,7 @@ function renderToken(data) {
     nameEl.textContent = p.name + (p.phone ? ` · ${p.phone}` : '');
     if (p.isEmergency) nameEl.innerHTML += ` <span style="color:var(--red)">[Emergency]</span>`;
     progressWrap.style.display = 'block';
-    startConsultTimer(p, data.avgConsultMinutes);
+    startConsultTimer(p);
   } else {
     nameEl.textContent = 'No patient in consultation';
     timerEl.textContent = '';
@@ -113,18 +114,16 @@ function renderToken(data) {
   }
 }
 
-function startConsultTimer(patient, avgMin) {
+function startConsultTimer(patient) {
   clearInterval(consultTimerInterval);
   const startTime = new Date(patient.consultStartTime).getTime();
   if (!startTime && !patient.liveElapsedMs) return;
-  
-  const allottedMin = patient.isEmergency ? 10 : (patient.isQuickConsult ? 2 : avgMin);
-  const avgMs = allottedMin * 60000;
+
+  const avgMs = patient.allottedMs || 600000;
   const timerEl = document.getElementById('token-timer');
   const bar = document.getElementById('token-progress-bar');
 
   consultTimerInterval = setInterval(() => {
-    // Current elapsed = previously accumulated (from DB/state) + time since current segment started
     const adjustedNow = Date.now() + timeOffset;
     let elapsed = patient.elapsedMs || 0;
     if (patient.consultStartTime) {
@@ -174,7 +173,6 @@ function renderQueue(data) {
   const sub   = document.getElementById('queue-sub');
   const empty = document.getElementById('queue-empty');
   
-  // Try to update history count safely if element exists
   const histCount = document.getElementById('snav-done-count');
   if(histCount) histCount.textContent = data.done?.length || 0;
 
@@ -188,16 +186,23 @@ function renderQueue(data) {
   empty.classList.remove('show');
 
   tbody.innerHTML = data.queue.map((p, idx) => {
-    const isNext = idx === 0;
+    const localMode = document.getElementById('preview-auto').checked ? 'auto' : 'manual';
+    const estWait = localMode === 'auto' ? p.estWaitMinAuto : p.estWaitMinManual;
+    
     const isEmergency = p.status === 'waiting-emergency';
     const isQuick = p.status === 'quick-consult';
     const isOnHold = p.status === 'on-hold';
     
-    let waitLabel = `~${Math.max(0, p.estimatedWaitMin)} min`;
-    let waitCls = p.estimatedWaitMin <= 10 ? 'short' : 'long';
+    let waitLabel = `~${Math.max(0, estWait)} min`;
+    let waitCls = estWait <= 10 ? 'short' : 'long';
     let badgeCls = '';
     let nameTag = '';
     
+    if (p.isNext) {
+      waitLabel = 'Next';
+      waitCls = 'short next';
+    }
+
     if (isEmergency) {
         waitCls = 'emergency'; badgeCls = 'emergency';
         nameTag = ' <span style="color:var(--red); font-size:10px; font-weight:700; text-transform:uppercase;">[Emergency]</span>';
@@ -207,7 +212,7 @@ function renderQueue(data) {
     } else if (isOnHold) {
         waitCls = 'on-hold'; badgeCls = 'on-hold';
         nameTag = ' <span style="color:var(--amber); font-size:10px; font-weight:700; text-transform:uppercase;">[On Hold]</span>';
-    } else if (isNext) {
+    } else if (p.isNext) {
         waitCls = 'next'; badgeCls = 'next';
     }
 
@@ -287,20 +292,58 @@ function renderDoneList(doneArray, isToday) {
 
 // Patients rendering moved to standalone patients.js
 
+let isSettingsDirty = false;
+
+function getAutoMs(arr, manualMin, fallbackMin) {
+  if (arr && arr.length >= 2) {
+    const recent = arr.slice(-10);
+    const sum = recent.reduce((a, b) => a + b, 0);
+    return sum / recent.length;
+  }
+  return (manualMin || fallbackMin) * 60000;
+}
+
 function renderSettings(data) {
-  const note   = document.getElementById('settings-note');
-  const input  = document.getElementById('avg-input');
-  const slider = document.getElementById('avg-slider');
-  if (document.activeElement !== input) {
-    input.value  = data.avgConsultMinutes;
-    slider.value = Math.min(data.avgConsultMinutes, 60);
-    updateSliderFill(data.avgConsultMinutes);
+  if (!data.waitSettings || isSettingsDirty) return;
+  const settings = data.waitSettings;
+  
+  const inNormal = document.getElementById('wt-normal');
+  const inEmerg = document.getElementById('wt-emergency');
+  const inQuick = document.getElementById('wt-quick');
+  
+  // Only update inputs if user isn't actively typing
+  if (document.activeElement !== inNormal && document.activeElement !== inEmerg && document.activeElement !== inQuick) {
+    inNormal.value = settings.manualTimes.normal || 10;
+    inEmerg.value = settings.manualTimes.emergency || 10;
+    inQuick.value = settings.manualTimes.quick || 4;
   }
-  if (data.sampleCount >= 2) {
-    note.innerHTML = `📊 <strong style="color:var(--green)">Real data active:</strong> Rolling avg of ${data.sampleCount} consultations = ${data.effectiveAvgMinutes} min`;
+  
+  // Calculate and display Auto times (exact match to server logic)
+  const autoNormalMs = getAutoMs(settings.durations.normal, settings.manualTimes.normal, 10);
+  const autoEmergMs = getAutoMs(settings.durations.emergency, settings.manualTimes.emergency, 10);
+  const autoQuickMs = getAutoMs(settings.durations.quick, settings.manualTimes.quick, 2);
+
+  const autoNormal = Math.round(autoNormalMs / 60000);
+  const autoEmerg = Math.round(autoEmergMs / 60000);
+  const autoQuick = Math.round(autoQuickMs / 60000);
+
+  document.getElementById('wt-auto-normal').textContent = `Auto: ${autoNormal} min`;
+  document.getElementById('wt-auto-emergency').textContent = `Auto: ${autoEmerg} min`;
+  document.getElementById('wt-auto-quick').textContent = `Auto: ${autoQuick} min`;
+  
+  // Manage Apply button visibility
+  const localMode = document.getElementById('preview-auto').checked ? 'auto' : 'manual';
+  const applyBtn = document.getElementById('btn-apply-mode');
+  if (localMode !== settings.mode) {
+    applyBtn.style.display = 'inline-block';
   } else {
-    note.textContent = `Manual setting. Overrides after ${2 - data.sampleCount} more consultation(s).`;
+    applyBtn.style.display = 'none';
   }
+}
+
+function onSettingsInput() {
+  isSettingsDirty = true;
+  document.getElementById('btn-save-wt').style.display = 'inline-block';
 }
 
 function renderUndo(data) {
@@ -332,12 +375,21 @@ function addQuickConsult() {
   const phone = document.getElementById('input-phone').value;
   if (name) socket.emit('add_quick_consult', { name, phone });
 }
-function quickConsult(token)    { socket.emit('quick_consult', { token }); showToast('Quick Consult added', 'success'); }
+function quickConsult(token)    { socket.emit('quick_consult', { token }); }
 function callNext()             { socket.emit('call_next'); }
 function undoCall()             { socket.emit('undo_call'); clearInterval(undoTimer); document.getElementById('btn-undo').classList.add('hidden'); showToast('Last call undone', 'info'); }
 function markDone(token)        { socket.emit('mark_done', { token }); }
-function removePatient(token)   { socket.emit('remove_patient', { token }); }
-function swapConsultation(token){ socket.emit('swap_consultation', { token }); showToast('Swapped consultation', 'info'); }
+function removePatient(token)   { 
+  if (confirm(`Are you sure you want to remove token #${token} from the queue?`)) {
+    socket.emit('remove_patient', { token }); 
+  }
+}
+function swapConsultation(token){ 
+  if (confirm(`Are you sure you want to swap the current consultation with token #${token}?`)) {
+    socket.emit('swap_consultation', { token }); 
+    showToast('Swapped consultation', 'info'); 
+  }
+}
 
 function filterQueue(val) {
   searchFilter = val.toLowerCase();
@@ -348,21 +400,32 @@ function filterQueue(val) {
   });
 }
 
-function onSliderInput(val) {
-  document.getElementById('avg-input').value = val;
-  updateSliderFill(val);
-  clearTimeout(avgDebounce);
-  avgDebounce = setTimeout(() => setAvgTime(val), 400);
+function updateLocalPreview() {
+  isSettingsDirty = false;
+  if (currentState) {
+    renderSettings(currentState);
+    renderQueue(currentState);
+  }
 }
-function setAvgTime(val) {
-  const minutes = parseFloat(val);
-  if (isNaN(minutes) || minutes < 1) return;
-  updateSliderFill(minutes);
-  socket.emit('set_avg_time', { minutes });
+
+function saveManualTimes() {
+  const normal = parseFloat(document.getElementById('wt-normal').value) || 10;
+  const emergency = parseFloat(document.getElementById('wt-emergency').value) || 10;
+  const quick = parseFloat(document.getElementById('wt-quick').value) || 4;
+  
+  socket.emit('save_manual_times', {
+    manualTimes: { normal, emergency, quick }
+  });
+  isSettingsDirty = false;
+  document.getElementById('btn-save-wt').style.display = 'none';
+  showToast('Manual settings saved', 'success');
 }
-function updateSliderFill(val) {
-  const s = document.getElementById('avg-slider');
-  s.style.setProperty('--pct', ((Math.min(val, 60) - 1) / 59 * 100) + '%');
+
+function applyGlobalMode() {
+  const mode = document.getElementById('preview-auto').checked ? 'auto' : 'manual';
+  socket.emit('set_global_wait_mode', { mode });
+  document.getElementById('btn-apply-mode').style.display = 'none';
+  showToast(`Wait mode updated to ${mode.toUpperCase()} globally`, 'success');
 }
 
 // ── CLOCK ────────────────────────────────────────────────────
