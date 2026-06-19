@@ -11,18 +11,32 @@ let avgDebounce = null;
 let searchFilter = '';
 let currentHistoryDate = new Date().toISOString().split('T')[0]; // today
 let sortableInstance = null;
+let phoneInputIti = null;
 
 // ── VOICE ALERTS ─────────────────────────────────────────────
 let soundEnabled = true;
 let previousVoiceToken = null;
 
-// ── SIDEBAR TOGGLE ───────────────────────────────────────────
+// ── SIDEBAR TOGGLE & SETUP ────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const toggle = document.getElementById('sidebar-toggle');
   if (toggle) {
     toggle.addEventListener('click', () => {
       document.querySelector('.sidebar')?.classList.toggle('collapsed');
       document.querySelector('.main-wrap')?.classList.toggle('collapsed');
+    });
+  }
+  
+  // Initialize intl-tel-input
+  const phoneEl = document.getElementById('input-phone');
+  if (phoneEl && window.intlTelInput) {
+    phoneInputIti = window.intlTelInput(phoneEl, {
+      initialCountry: 'auto',
+      geoIpLookup: callback => {
+        fetch('https://ipapi.co/json').then(res => res.json()).then(data => callback(data.country_code)).catch(() => callback('in'));
+      },
+      separateDialCode: true,
+      utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.4/build/js/utils.js'
     });
   }
 });
@@ -410,24 +424,43 @@ function renderUndo(data) {
 }
 
 // ── ACTIONS ──────────────────────────────────────────────────
+function getValidatedPhone() {
+  const raw = document.getElementById('input-phone').value.trim();
+  if (!raw) return '';
+  if (phoneInputIti && !phoneInputIti.isValidNumber()) {
+    showToast('Please enter a valid phone number', 'error');
+    return null;
+  }
+  return phoneInputIti ? phoneInputIti.getNumber() : raw;
+}
+
 function addPatient(e) {
   e.preventDefault();
   const name = document.getElementById('input-name').value.trim();
   if (!name) { showToast('Patient name is required', 'error'); return; }
-  socket.emit('add_patient', { name, phone: document.getElementById('input-phone').value.trim() });
+  const phone = getValidatedPhone();
+  if (phone === null) return;
+  
+  socket.emit('add_patient', { name, phone });
   document.getElementById('add-patient-form').reset();
 }
+
 function addEmergency() {
   const name = document.getElementById('input-name').value.trim();
-  const phone = document.getElementById('input-phone').value.trim();
   if (!name) { showToast('Patient name is required', 'error'); return; }
+  const phone = getValidatedPhone();
+  if (phone === null) return;
+  
   socket.emit('add_emergency', { name, phone });
   document.getElementById('add-patient-form').reset();
 }
+
 function addQuickConsult() {
   const name = document.getElementById('input-name').value.trim();
-  const phone = document.getElementById('input-phone').value.trim();
   if (!name) { showToast('Patient name is required', 'error'); return; }
+  const phone = getValidatedPhone();
+  if (phone === null) return;
+  
   socket.emit('add_quick_consult', { name, phone });
   document.getElementById('add-patient-form').reset();
 }
