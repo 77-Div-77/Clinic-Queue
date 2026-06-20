@@ -1,7 +1,23 @@
 // ============================================================
 //  RECEPTIONIST DASHBOARD v3 — Client JS (Light Theme)
 // ============================================================
-const socket = io();
+let clinicId = null;
+let clinicName = 'ClinicQueue';
+const socket = io({ autoConnect: false });
+
+fetch('/api/me').then(r => r.json()).then(data => {
+  if (data.loggedIn && data.clinic) {
+    clinicId = data.clinic.id;
+    clinicName = data.clinic.name;
+    document.title = clinicName + ' - Dashboard';
+    socket.connect();
+    socket.emit('join_clinic', { clinicId });
+  } else {
+    document.cookie = "rcp_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    window.location.href = '/?signin=1';
+  }
+});
+
 let pendingAddAndCall = false;
 let undoTimer = null;
 let consultTimerInterval = null;
@@ -570,8 +586,9 @@ if (btnSound) {
 }
 
 function showQRModal() {
-  const url = window.location.origin + '/patient.html';
-  const qrImg = document.getElementById('qr-img');
-  qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&margin=10`;
+  const qrUrl = window.location.origin + '/patient.html?clinicId=' + clinicId;
+  document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrUrl)}`;
+  const cidEl = document.getElementById('qr-clinic-id');
+  if (cidEl) cidEl.textContent = 'Clinic ID: ' + clinicId;
   document.getElementById('qr-modal').classList.remove('hidden');
 }
