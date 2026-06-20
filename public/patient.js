@@ -1,7 +1,26 @@
 // ============================================================
 //  PATIENT PAGE v3 — Client JS (Light Theme)
 // ============================================================
-const socket = io();
+const urlParams = new URLSearchParams(window.location.search);
+const clinicId = urlParams.get('clinicId');
+const socket = io({ autoConnect: false });
+
+if (!clinicId) {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('clinic-prompt').classList.remove('hidden');
+    document.getElementById('clinic-id-input').focus();
+  });
+} else {
+  socket.connect();
+  socket.emit('join_clinic', { clinicId });
+}
+
+function submitClinicId() {
+  const cid = document.getElementById('clinic-id-input').value.trim();
+  if (cid) {
+    window.location.href = `/patient.html?clinicId=${cid}`;
+  }
+}
 let myToken = null;
 let currentState = null;
 let heroTimerInterval = null;

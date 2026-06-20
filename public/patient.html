@@ -95,6 +95,18 @@
     </div>
   </div>
 
+  <!-- CLINIC ID PROMPT -->
+  <div id="clinic-prompt" class="soon-alert hidden" style="z-index: 9999;">
+    <div class="sa-backdrop" style="opacity:0.9;"></div>
+    <div class="sa-card" style="padding: 30px;">
+      <div class="sa-icon" style="background:var(--blue-light); color:var(--blue);">🏥</div>
+      <div class="sa-title">Enter Clinic ID</div>
+      <div class="sa-sub" style="margin-bottom:20px;">Please enter the Clinic ID provided by your clinic to view your live wait time.</div>
+      <input id="clinic-id-input" type="text" style="width:100%; padding: 12px; border:2px solid var(--border); border-radius:10px; font-size:16px; text-align:center; margin-bottom:14px; outline:none;" placeholder="e.g. 64abc123" onkeydown="if(event.key==='Enter')submitClinicId()" />
+      <button class="sa-btn" onclick="submitClinicId()" style="background:var(--blue); width:100%;">View Queue →</button>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <footer class="page-footer">
     <span>Live updates via Socket.IO · No page refresh needed</span>
