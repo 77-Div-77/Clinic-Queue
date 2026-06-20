@@ -30,6 +30,9 @@ Two export buttons in the History tab:
 - Monthly: Last day of the month at 10:00 PM
 - Annual: December 31st at 10:00 PM
 
+## 8. Audio Announcements via Clinic Sound System ✅ DONE
+Integrated the browser's **Web Speech API** into the receptionist dashboard. When a token is called, the system speaks: *"Token number X, please proceed."* Features a "🔊 Sound: ON / OFF" toggle in the top bar.
+
 ---
 
 ## 8. Patient Self-Service Kiosk Check-In (PLANNED)
@@ -66,25 +69,6 @@ Two export buttons in the History tab:
 **Dependencies:** No new packages needed — uses existing Socket.IO and intl-tel-input.
 
 ---
-
-## 9. Audio Announcements via Clinic Sound System (PLANNED)
-
-**Goal:** Announce the called token number through a speaker/sound system connected to the receptionist's computer — so patients in the waiting room hear it out loud, not just on their phones.
-
-**Reasoning:** Making every patient's phone produce audio may be intrusive. A single general announcement from the clinic's speaker is more appropriate for a shared waiting room.
-
-**Implementation Plan:**
-- Use the browser's built-in **Web Speech API** (`window.speechSynthesis`) on the receptionist's browser
-- When `call_next` is clicked and the server responds with `queue_update`, trigger:
-  ```js
-  const utterance = new SpeechSynthesisUtterance(`Token number ${currentToken}, please proceed to the doctor.`);
-  utterance.lang = 'en-IN';
-  window.speechSynthesis.speak(utterance);
-  ```
-- Add a toggle in the Dashboard settings: "🔊 Audio Announcements: ON / OFF"
-- Announcement language can be expanded (Hindi: `hi-IN`) via a settings dropdown
-
-**Dependencies:** Zero — Web Speech API is built into all modern browsers.
 
 ---
 
