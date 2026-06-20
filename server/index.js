@@ -405,11 +405,26 @@ class ClinicQueue {
     };
   }
 
-  getPatientId(name, phone) {
+  async getPatientId(name, phone) {
     const key = `${name.toLowerCase().trim()}|${(phone || '').trim()}`;
     let found = Object.values(this.state.patientsDirectory).find(p => p.key === key);
     if (found) return found.id;
-    const id = `PID-${Object.keys(this.state.patientsDirectory).length + 1001}`;
+    
+    // Check database to reuse existing patientId
+    if (mongoose.connection.readyState === 1) {
+      const Patient = require('./models/Patient');
+      let query = { clinicId: this.clinicId, name: name.trim() };
+      if (phone) query.phone = phone.trim();
+      try {
+        const existingDb = await Patient.findOne(query).sort({ checkInTime: -1 });
+        if (existingDb && existingDb.patientId) {
+          this.state.patientsDirectory[existingDb.patientId] = { id: existingDb.patientId, key, name: name.trim(), phone: phone ? phone.trim() : '' };
+          return existingDb.patientId;
+        }
+      } catch (err) {}
+    }
+
+    const id = `PID-${Date.now().toString().slice(-5)}${Math.floor(Math.random()*100)}`;
     this.state.patientsDirectory[id] = { id, key, name: name.trim(), phone: phone ? phone.trim() : '' };
     return id;
   }
@@ -594,13 +609,13 @@ class ClinicQueue {
         const patients = await Patient.find({ clinicId: this.clinicId, sessionId: session._id });
         this.state.queue = patients.map(p => p.toObject());
         
-        this.state.queue.forEach(p => {
-          if (!p.patientId) p.patientId = this.getPatientId(p.name, p.phone);
+        for (const p of this.state.queue) {
+          if (!p.patientId) p.patientId = await this.getPatientId(p.name, p.phone);
           else {
             const key = `${p.name.toLowerCase().trim()}|${(p.phone || '').trim()}`;
             this.state.patientsDirectory[p.patientId] = { id: p.patientId, key, name: p.name, phone: p.phone };
           }
-        });
+        }
       }
       this.state.sessionId = session._id;
     } catch (err) {
@@ -736,7 +751,7 @@ io.on('connection', (socket) => {
     if (!name || !name.trim()) return;
     name = toTitleCase(name.trim());
 
-    const patientId = cq.getPatientId(name, phone);
+    const patientId = await cq.getPatientId(name, phone);
     const existing = cq.state.queue.filter(p => p.patientId === patientId);
     
     if (existing.some(p => p.status !== 'done')) {
@@ -768,7 +783,7 @@ io.on('connection', (socket) => {
     if (!name || !name.trim()) return;
     name = toTitleCase(name.trim());
 
-    const patientId = cq.getPatientId(name, phone);
+    const patientId = await cq.getPatientId(name, phone);
     const existing = cq.state.queue.filter(p => p.patientId === patientId);
     
     if (existing.some(p => p.status !== 'done')) {
@@ -821,7 +836,7 @@ io.on('connection', (socket) => {
     if (!name || !name.trim()) return;
     name = toTitleCase(name.trim());
 
-    const patientId = cq.getPatientId(name, phone);
+    const patientId = await cq.getPatientId(name, phone);
     const existing = cq.state.queue.filter(p => p.patientId === patientId);
     
     if (existing.some(p => p.status !== 'done')) {
