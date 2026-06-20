@@ -187,23 +187,27 @@ async function generateExcel(records, title) {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'ClinicQ';
 
-  // Sheet 1: Patient Log
   const ws1 = wb.addWorksheet('Patient Log');
   ws1.columns = [
-    { header: 'Token',    key: 'token',    width: 10 },
-    { header: 'Name',     key: 'name',     width: 25 },
-    { header: 'Phone',    key: 'phone',    width: 18 },
-    { header: 'Arrival',  key: 'arrival',  width: 20 },
-    { header: 'Departure',key: 'departure',width: 20 },
+    { header: 'PID',        key: 'pid',      width: 15 },
+    { header: 'Name',       key: 'name',     width: 25 },
+    { header: 'Phone',      key: 'phone',    width: 18 },
+    { header: 'Date',       key: 'date',     width: 15 },
+    { header: 'Arrival',    key: 'arrival',  width: 15 },
+    { header: 'Departure',  key: 'departure',width: 15 },
     { header: 'Duration (min)', key: 'duration', width: 16 },
   ];
   ws1.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
   ws1.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
 
-  const fmt = (iso) => iso ? new Date(iso).toLocaleString('en-IN') : '—';
+  records.sort((a, b) => new Date(a.checkInTime) - new Date(b.checkInTime));
+  
+  const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-IN') : '—';
+  const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'}) : '—';
+  
   records.forEach(r => {
     const mins = r.elapsedMs ? (r.elapsedMs / 60000).toFixed(1) : '—';
-    ws1.addRow({ token: r.token, name: r.name, phone: r.phone || '—', arrival: fmt(r.checkInTime), departure: fmt(r.consultEndTime), duration: mins });
+    ws1.addRow({ pid: r.patientId || '—', name: r.name, phone: r.phone || '—', date: fmtDate(r.checkInTime), arrival: fmtTime(r.checkInTime), departure: fmtTime(r.consultEndTime), duration: mins });
   });
 
   // Sheet 2: Summary
@@ -1257,7 +1261,7 @@ io.on('connection', (socket) => {
     if (!socket.currentClinicId) return cb([]);
     try {
       const records = await Patient.find({ clinicId: socket.currentClinicId, status: 'done' }).sort({ checkInTime: 1 });
-      cb(records.map(r => ({ token: r.token, name: r.name, phone: r.phone, checkInTime: r.checkInTime, consultEndTime: r.consultEndTime, elapsedMs: r.elapsedMs })));
+      cb(records.map(r => ({ patientId: r.patientId, token: r.token, name: r.name, phone: r.phone, checkInTime: r.checkInTime, consultEndTime: r.consultEndTime, elapsedMs: r.elapsedMs })));
     } catch(e) { cb([]); }
   });
 

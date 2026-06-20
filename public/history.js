@@ -133,28 +133,25 @@ function appendMasterLog() {
   showToastMsg('⏳ Fetching all records for Master Log…', 'info');
   socket.emit('get_all_history', (records) => {
     if (!records || records.length === 0) { showToastMsg('⚠️ No records found.', 'error'); return; }
-    // Group by date
-    const grouped = {};
-    records.forEach(r => {
-      const day = r.checkInTime ? new Date(r.checkInTime).toLocaleDateString('en-IN') : 'Unknown';
-      if (!grouped[day]) grouped[day] = [];
-      grouped[day].push(r);
-    });
+    
+    records.sort((a, b) => new Date(a.checkInTime) - new Date(b.checkInTime));
+    
     const wb = XLSX.utils.book_new();
-    Object.entries(grouped).forEach(([day, rows]) => {
-      const sheetName = day.replace(/\//g, '-').substring(0, 31);
-      const data = [['Token','Name','Phone','Arrival','Departure','Duration (min)']];
-      rows.forEach(r => {
-        const fmt = (iso) => iso ? new Date(iso).toLocaleString('en-IN') : '—';
-        const mins = r.elapsedMs ? (r.elapsedMs/60000).toFixed(1) : '—';
-        data.push([r.token, r.name, r.phone||'—', fmt(r.checkInTime), fmt(r.consultEndTime), mins]);
-      });
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    const data = [['PID', 'Name', 'Phone', 'Date', 'Arrival', 'Departure', 'Duration (min)']];
+    
+    records.forEach(r => {
+      const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-IN') : '—';
+      const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'}) : '—';
+      const mins = r.elapsedMs ? (r.elapsedMs/60000).toFixed(1) : '—';
+      data.push([r.patientId || '—', r.name, r.phone||'—', fmtDate(r.checkInTime), fmtTime(r.checkInTime), fmtTime(r.consultEndTime), mins]);
     });
+    
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, "Master Log");
+    
     const today = new Date().toLocaleDateString('en-IN').replace(/\//g,'-');
     XLSX.writeFile(wb, `ClinicQ_MasterLog_${today}.xlsx`);
-    showToastMsg(`✅ Master Log downloaded — ${records.length} records across ${Object.keys(grouped).length} days.`, 'success');
+    showToastMsg(`✅ Master Log downloaded — ${records.length} records.`, 'success');
   });
 }
 
