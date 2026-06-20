@@ -90,13 +90,13 @@ Two export buttons in the History tab:
 
 ## 10. Multi-Doctor Support (PLANNED)
 
-**Goal:** Allow clinics with 2–3 doctors to maintain separate queues per consultation room.
+**Goal:** Allow clinics with multiple doctors to maintain separate queues per consultation room, with dynamic setup and intelligent routing.
 
 **Implementation Plan:**
-- Add a `doctorId` field to the `Clinic` schema (array of doctors)
-- Create separate `ClinicQueue` instances per doctor, keyed as `<clinicId>_doctor_<n>`
-- Receptionist can toggle between "Room 1", "Room 2" queues on the dashboard
-- Patient view shows which room they are assigned to
+- **Dynamic Setup:** During clinic sign-up, ask the receptionist for the number of doctors and their names. Add a Settings UI to allow adding/removing doctors later as staff changes.
+- **Per-Doctor Tokens:** Tokens will be alphanumeric per doctor (e.g., Dr. A gets A1, A2; Dr. B gets B1, B2) to keep queues strictly separated and prevent waiting room confusion.
+- **AI Symptom Analysis:** Integrate an AI API on the kiosk or patient portal where patients describe their symptoms. The AI analyzes the text and automatically assigns them to the best-suited specialist doctor in the clinic.
+- **Reporting Updates:** SMS alerts, email reports, and Excel exports must all be updated to include the Doctor Name and Room assignments.
 
 ---
 
