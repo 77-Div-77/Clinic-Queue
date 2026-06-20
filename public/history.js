@@ -1,4 +1,15 @@
-const socket = io();
+const socket = io({ autoConnect: false });
+let clinicId = null;
+
+fetch('/api/me').then(r => r.json()).then(data => {
+  if (data.loggedIn && data.clinic) {
+    clinicId = data.clinic.id;
+    socket.connect();
+    socket.emit('join_clinic', { clinicId });
+  } else {
+    window.location.href = '/?signin=1';
+  }
+});
 
 // ── MOBILE SIDEBAR ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -34,7 +45,9 @@ socket.on('connect', () => {
   const d = new Date();
   const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   document.getElementById('history-date').value = today;
-  loadHistory(today);
+  if (clinicId) {
+    loadHistory(today);
+  }
 });
 socket.on('disconnect', () => {
   sfDot.className = 'sf-dot offline'; sfText.textContent = 'Disconnected';
