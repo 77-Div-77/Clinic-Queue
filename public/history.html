@@ -101,7 +101,7 @@
 
   <div id="toast-container" class="toast-container"></div>
   <script>
-    if (!document.cookie.includes('rcp_auth=1')) window.location.replace('/?signin=1');
+    if (!document.cookie.includes('rcp_auth=')) window.location.replace('/?signin=1');
     function signOut() { document.cookie = 'rcp_auth=; Max-Age=0; path=/;'; window.location.href = '/'; }
   </script>
   <script src="/socket.io/socket.io.js"></script>
