@@ -77,9 +77,86 @@ function sendDailyReport() {
 socket.on('report_sent', (data) => {
   const c = document.getElementById('toast-container');
   const t = document.createElement('div');
-  t.className = `toast toast--success`; t.textContent = data.message; c.appendChild(t);
-  setTimeout(() => t.remove(), 3200);
+  t.className = 'toast toast--success';
+  let msg = data.message;
+  if (data.detail) msg += `\n${data.detail}`;
+  if (data.attachments && data.attachments.length) msg += `\nAttachments: ${data.attachments.join(', ')}`;
+  t.textContent = msg;
+  t.style.whiteSpace = 'pre-line';
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 5000);
 });
+
+// ── Export Range ──────────────────────────────────────────────
+function exportRange() {
+  const from = document.getElementById('export-from').value;
+  const to   = document.getElementById('export-to').value;
+  if (!from || !to) { alert('Please select both From and To dates.'); return; }
+  if (new Date(from) > new Date(to)) { alert('From date must be before To date.'); return; }
+  showToastMsg('⏳ Generating export…', 'info');
+  socket.emit('export_range', { from, to });
+}
+
+socket.on('export_ready', (data) => {
+  // Download XLSX
+  const xlsxBlob = b64toBlob(data.xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  triggerDownload(xlsxBlob, data.xlsxName);
+  // Download PDF
+  const pdfBlob = b64toBlob(data.pdf, 'application/pdf');
+  triggerDownload(pdfBlob, data.pdfName);
+  showToastMsg(`✅ Downloaded: ${data.xlsxName} & ${data.pdfName}`, 'success');
+});
+
+function b64toBlob(b64, type) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type });
+}
+function triggerDownload(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function showToastMsg(msg, type='success') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast toast--${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ── Master Log (all history via SheetJS) ────────────────────────
+function appendMasterLog() {
+  showToastMsg('⏳ Fetching all records for Master Log…', 'info');
+  socket.emit('get_all_history', (records) => {
+    if (!records || records.length === 0) { showToastMsg('⚠️ No records found.', 'error'); return; }
+    // Group by date
+    const grouped = {};
+    records.forEach(r => {
+      const day = r.checkInTime ? new Date(r.checkInTime).toLocaleDateString('en-IN') : 'Unknown';
+      if (!grouped[day]) grouped[day] = [];
+      grouped[day].push(r);
+    });
+    const wb = XLSX.utils.book_new();
+    Object.entries(grouped).forEach(([day, rows]) => {
+      const sheetName = day.replace(/\//g, '-').substring(0, 31);
+      const data = [['Token','Name','Phone','Arrival','Departure','Duration (min)']];
+      rows.forEach(r => {
+        const fmt = (iso) => iso ? new Date(iso).toLocaleString('en-IN') : '—';
+        const mins = r.elapsedMs ? (r.elapsedMs/60000).toFixed(1) : '—';
+        data.push([r.token, r.name, r.phone||'—', fmt(r.checkInTime), fmt(r.consultEndTime), mins]);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+    const today = new Date().toLocaleDateString('en-IN').replace(/\//g,'-');
+    XLSX.writeFile(wb, `ClinicQ_MasterLog_${today}.xlsx`);
+    showToastMsg(`✅ Master Log downloaded — ${records.length} records across ${Object.keys(grouped).length} days.`, 'success');
+  });
+}
 
 // ── STATE ────────────────────────────────────────────────────
 let allHistoryData = [];

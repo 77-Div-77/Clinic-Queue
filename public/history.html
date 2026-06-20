@@ -10,6 +10,14 @@
   <style>
     .history-card { padding: 24px; }
     .history-controls { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; }
+    .export-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; }
+    .export-section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .export-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .export-btn-green  { background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .export-btn-green:hover { background: #bbf7d0; }
+    .export-btn-purple { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .export-btn-purple:hover { background: #ddd6fe; }
+    .export-label { font-size: 12px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -62,11 +70,24 @@
     <div class="main-content" style="grid-template-columns: 1fr;">
       <div class="card history-card">
         <div class="qc-header" style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-          <div style="display:flex;align-items:center;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <input type="date" id="history-date" class="form-input" style="padding:5px 8px;width:auto;font-size:12px;" />
             <button class="btn" style="background:#e0f2fe;color:#0284c7;border:1px solid #7dd3fc;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;" onclick="sendDailyReport()">📧 Email Report</button>
           </div>
           <input id="history-search" type="text" placeholder="🔍 Search name or token…" oninput="filterHistory()" class="queue-search" style="width:210px;" />
+        </div>
+
+        <!-- Export Range Section -->
+        <div class="export-section" style="margin:14px 18px 0;">
+          <div class="export-section-title">📤 Export Custom Date Range</div>
+          <div class="export-row">
+            <span class="export-label">From:</span>
+            <input type="datetime-local" id="export-from" class="form-input" style="padding:4px 8px;width:auto;font-size:12px;" />
+            <span class="export-label">To:</span>
+            <input type="datetime-local" id="export-to" class="form-input" style="padding:4px 8px;width:auto;font-size:12px;" />
+            <button class="export-btn-green" onclick="exportRange()">📤 Export Range</button>
+            <button class="export-btn-purple" onclick="appendMasterLog()">📋 Append to Master Log</button>
+          </div>
         </div>
         
         <div class="kpi-strip" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 0; border-bottom: 1px solid var(--border); border-radius: 0; box-shadow: none;">
@@ -107,6 +128,7 @@
     if (!document.cookie.includes('rcp_auth=')) window.location.replace('/?signin=1');
     function signOut() { document.cookie = 'rcp_auth=; Max-Age=0; path=/;'; window.location.href = '/'; }
   </script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="history.js"></script>
 </body>
