@@ -1144,14 +1144,15 @@
 </script>
 
 <!-- ── SIGN-IN MODAL ─────────────────────────────────────────── -->
-<div id="signin-overlay" style="display:none;position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);">
-  <div style="background:#fff;border-radius:20px;padding:40px 36px;width:90%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,0.25);position:relative;animation:si-in 0.35s cubic-bezier(0.34,1.56,0.64,1);">
+<div id="signin-overlay" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);">
+  <div style="background:#fff;border-radius:20px;padding:32px 36px;width:90%;max-width:400px;box-shadow:0 24px 60px rgba(0,0,0,0.25);position:relative;animation:si-in 0.35s cubic-bezier(0.34,1.56,0.64,1);">
     <style>
       @keyframes si-in{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
-      .si-logo{text-align:center;margin-bottom:20px}
+      .si-logo{text-align:center;margin-bottom:12px}
       .si-logo span{font-size:36px}
-      .si-title{font-size:20px;font-weight:900;color:#1e293b;text-align:center;margin-bottom:4px}
-      .si-sub{font-size:13px;color:#94a3b8;text-align:center;margin-bottom:24px}
+      .si-tabs { display:flex; gap:10px; margin-bottom:20px; border-bottom:2px solid #e2e8f0; }
+      .si-tab { flex:1; text-align:center; padding:10px; font-size:14px; font-weight:700; color:#94a3b8; cursor:pointer; }
+      .si-tab.active { color:#1a6fbc; border-bottom:3px solid #1a6fbc; margin-bottom:-2px; }
       .si-field{margin-bottom:14px}
       .si-label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px}
       .si-input{width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-family:Inter,sans-serif;outline:none;transition:.2s;}
@@ -1163,35 +1164,92 @@
     </style>
     <button class="si-close" onclick="closeSignIn()">&times;</button>
     <div class="si-logo"><span>🏥</span></div>
-    <div class="si-title">Receptionist Sign In</div>
-    <div class="si-sub">Enter your credentials to access the dashboard</div>
-    <div class="si-field">
-      <label class="si-label">Username</label>
-      <input id="si-user" class="si-input" type="text" placeholder="Username" autocomplete="username" />
+    
+    <div class="si-tabs">
+      <div class="si-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="si-tab" id="tab-register" onclick="switchAuthTab('register')">Register</div>
     </div>
-    <div class="si-field">
-      <label class="si-label">Password</label>
-      <input id="si-pass" class="si-input" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()" />
+
+    <div id="form-login">
+      <div class="si-field">
+        <label class="si-label">Username</label>
+        <input id="si-user" class="si-input" type="text" placeholder="Username" />
+      </div>
+      <div class="si-field">
+        <label class="si-label">Password</label>
+        <input id="si-pass" class="si-input" type="password" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter')doSignIn()" />
+      </div>
+      <button class="si-btn" onclick="doSignIn()">Sign In →</button>
     </div>
-    <button class="si-btn" onclick="doSignIn()">Sign In →</button>
-    <div id="si-err" class="si-err">Incorrect username or password. Please try again.</div>
+
+    <div id="form-register" style="display:none;">
+      <div class="si-field">
+        <label class="si-label">Clinic Name</label>
+        <input id="reg-name" class="si-input" type="text" placeholder="Sunrise Clinic" />
+      </div>
+      <div class="si-field">
+        <label class="si-label">Clinic Email</label>
+        <input id="reg-email" class="si-input" type="email" placeholder="hello@sunrise.com" />
+      </div>
+      <div class="si-field">
+        <label class="si-label">Username</label>
+        <input id="reg-user" class="si-input" type="text" placeholder="sunrise" />
+      </div>
+      <div class="si-field">
+        <label class="si-label">Password</label>
+        <input id="reg-pass" class="si-input" type="password" placeholder="Strong password" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()" />
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
+          <strong>Password must contain:</strong><br/>
+          • At least 8 characters<br/>
+          • 1 uppercase & 1 lowercase letter<br/>
+          • 1 number & 1 special symbol (e.g. @, !)
+        </div>
+      </div>
+      <button class="si-btn" onclick="doRegister()">Create Account →</button>
+    </div>
+
+    <div id="si-err" class="si-err">Error message here</div>
   </div>
 </div>
 
 <script>
+  function switchAuthTab(tab) {
+    document.getElementById('si-err').style.display = 'none';
+    if (tab === 'login') {
+      document.getElementById('tab-login').classList.add('active');
+      document.getElementById('tab-register').classList.remove('active');
+      document.getElementById('form-login').style.display = 'block';
+      document.getElementById('form-register').style.display = 'none';
+    } else {
+      document.getElementById('tab-register').classList.add('active');
+      document.getElementById('tab-login').classList.remove('active');
+      document.getElementById('form-register').style.display = 'block';
+      document.getElementById('form-login').style.display = 'none';
+    }
+  }
+
   function openSignIn() {
-    if (document.cookie.includes('rcp_auth=1')) { window.location.href='/receptionist.html'; return; }
+    if (document.cookie.includes('rcp_auth=') && new URLSearchParams(location.search).get('signin') !== '1') {
+      window.location.href='/receptionist.html'; 
+      return; 
+    }
     const ov = document.getElementById('signin-overlay');
     ov.style.display = 'flex';
+    switchAuthTab('login');
     setTimeout(()=>document.getElementById('si-user').focus(), 100);
-    // Auto-open if redirected here
   }
+
   function closeSignIn() {
     document.getElementById('signin-overlay').style.display = 'none';
     document.getElementById('si-err').style.display = 'none';
-    document.getElementById('si-user').value = '';
-    document.getElementById('si-pass').value = '';
   }
+
+  function showErr(msg) {
+    const err = document.getElementById('si-err');
+    err.textContent = msg;
+    err.style.display = 'block';
+  }
+
   async function doSignIn() {
     const user = document.getElementById('si-user').value.trim();
     const pass = document.getElementById('si-pass').value;
@@ -1203,18 +1261,40 @@
       });
       const data = await res.json();
       if (data.success) {
-        closeSignIn();
         window.location.href = '/receptionist.html';
       } else {
-        document.getElementById('si-err').style.display = 'block';
-        document.getElementById('si-pass').value = '';
-        document.getElementById('si-pass').focus();
+        showErr(data.message || 'Invalid credentials');
       }
     } catch (e) {
-      alert("Error connecting to server.");
+      showErr("Error connecting to server.");
     }
   }
-  // Auto-open modal if redirected from dashboard with ?signin=1
+
+  async function doRegister() {
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const user = document.getElementById('reg-user').value.trim();
+    const pass = document.getElementById('reg-pass').value;
+
+    if (!name || !email || !user || !pass) return showErr("All fields are required");
+
+    try {
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicName: name, username: user, email: email, password: pass })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = '/receptionist.html';
+      } else {
+        showErr(data.message || 'Registration failed');
+      }
+    } catch (e) {
+      showErr("Error connecting to server.");
+    }
+  }
+
   if (new URLSearchParams(location.search).get('signin') === '1') openSignIn();
 </script>
 
