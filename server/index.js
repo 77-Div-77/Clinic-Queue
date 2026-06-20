@@ -413,7 +413,10 @@ class ClinicQueue {
     // Check database to reuse existing patientId
     if (mongoose.connection.readyState === 1) {
       const Patient = require('./models/Patient');
-      let query = { clinicId: this.clinicId, name: name.trim() };
+      let query = { 
+        clinicId: this.clinicId, 
+        name: { $regex: `^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } 
+      };
       if (phone) query.phone = phone.trim();
       try {
         const existingDb = await Patient.findOne(query).sort({ checkInTime: -1 });
