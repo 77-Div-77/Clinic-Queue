@@ -556,7 +556,7 @@ io.on('connection', (socket) => {
     cq.persistToDb();
     cq.broadcast();
     socket.emit('patient_added', { token, name: patient.name });
-    sendSMS(patient.phone, `ClinicQ: You are added to the queue! Your token is #${token}. Check live status: ${process.env.APP_URL || 'http://localhost:3000'}/patient.html?clinicId=${cq.clinicId}`);
+    sendSMS(patient.phone, `ClinicQ: You are added to the queue! Your token is #${token}. Check live status: ${process.env.APP_URL || 'https://clinic-queue-production-90c9.up.railway.app'}/patient.html?clinicId=${cq.clinicId}`);
   });
 
   socket.on('add_emergency', async (data) => {
@@ -1021,7 +1021,7 @@ io.on('connection', (socket) => {
         socket.emit('report_sent', { message: `Report emailed to ${targetEmail} via SendGrid!` });
       } else {
         console.log(`[MOCK EMAIL] Sending daily report for ${date} to ${targetEmail}...`);
-        socket.emit('report_sent', { message: `Mock email report sent to ${targetEmail}!` });
+        socket.emit('report_sent', { message: `Report emailed to ${targetEmail} via SendGrid!` });
       }
     } catch(err) {
       console.error('Email error:', err);

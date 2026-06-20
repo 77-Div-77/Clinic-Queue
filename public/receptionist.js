@@ -590,5 +590,7 @@ function showQRModal() {
   document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrUrl)}`;
   const cidEl = document.getElementById('qr-clinic-id');
   if (cidEl) cidEl.textContent = 'Clinic ID: ' + clinicId;
+  const qrLinkEl = document.getElementById('qr-link');
+  if (qrLinkEl) qrLinkEl.href = qrUrl;
   document.getElementById('qr-modal').classList.remove('hidden');
 }
