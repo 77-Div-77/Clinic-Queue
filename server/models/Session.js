@@ -6,6 +6,7 @@ const SessionSchema = new mongoose.Schema({
   currentToken: { type: Number, default: 0 },
   nextTokenCounter: { type: Number, default: 1 },
   totalServed: { type: Number, default: 0 },
+  clinicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clinic', required: false },
   consultStartTime: { type: Number, default: null }, // Unix ms timestamp
 });
 

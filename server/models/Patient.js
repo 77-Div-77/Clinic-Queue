@@ -15,8 +15,9 @@ const PatientSchema = new mongoose.Schema({
   sortIndex: { type: Number, default: null },
   meetingsToday: { type: Number, default: 1 },
   sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Session' },
+  clinicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clinic', required: false }
 });
 
-PatientSchema.index({ sessionId: 1, token: 1 }, { unique: true });
+PatientSchema.index({ clinicId: 1, sessionId: 1, token: 1 }, { unique: true });
 
 module.exports = mongoose.model('Patient', PatientSchema);
