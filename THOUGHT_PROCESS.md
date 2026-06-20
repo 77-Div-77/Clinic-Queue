@@ -130,7 +130,25 @@ A receptionist can remove any waiting patient. Cannot remove someone in-consulta
 
 ---
 
-## 8. Answering the Three Evaluation Questions
+## 8. Multi-Tenant SaaS Evolution & Security
+
+The system evolved from a single-clinic prototype to a **fully-fledged Multi-Tenant SaaS platform**. 
+- **Clinic Data Isolation:** Clinics securely register their own unique accounts on the homepage. Socket.IO Rooms (`room_<clinicId>`) ensure data is perfectly isolated.
+- **JWT Authentication:** Stateful cookies were replaced with secure JSON Web Tokens (JWT) to safely authorize API routes and socket joins.
+- **Strict 8-4 Password Rule:** To meet modern security standards, the registration endpoint strictly enforces a complex password policy (Minimum 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special symbol).
+- **Dynamic Routing:** Patients scan a unique QR code generated on the receptionist dashboard, containing the `?clinicId=<ID>` parameter, dynamically routing them to the correct clinic's live queue.
+
+---
+
+## 9. API Integrations & Evaluator Mocking
+
+For the purposes of the hackathon evaluation, the integration with external APIs (Twilio for SMS, SendGrid for Email Reports) has been cleanly implemented in the codebase but defaults to a "Mock Mode" if the API keys are not provided in the `.env` file. 
+
+This ensures that evaluators can verify the full logical flow—including UI popups demonstrating the exact content of the simulated SMS/Email—without needing to configure paid third-party API accounts. Any evaluator wishing to see live messages simply has to drop their keys into `.env` and the real integrations will seamlessly activate.
+
+---
+
+## 10. Answering the Three Evaluation Questions
 
 **Q1 — Receptionist adds patient in under 10 seconds?**  
 Yes. Single required field, auto-focus, Enter key submits. Tested at 3–5 seconds consistently.
