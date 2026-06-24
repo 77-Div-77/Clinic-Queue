@@ -1,7 +1,7 @@
 # ClinicQ — Thought Process & Architecture Notes
 
 **Submission for:** Wooble Clinic Queue Challenge  
-**Author:** Divya  
+**Author:** Divyanshu Ghosh
 **Stack:** Express.js · Socket.IO · MongoDB · Vanilla HTML/CSS/JS  
 **Live Demo:** https://clinic-queue-production-90c9.up.railway.app
 
