@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sidebarBtn) {
     sidebarBtn.addEventListener('click', () => {
       // For mobile: toggle slide-in drawer
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 768) {
         sidebar.classList.toggle('mobile-open');
         backdrop.classList.toggle('show');
       } else {

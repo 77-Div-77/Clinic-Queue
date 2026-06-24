@@ -9,7 +9,6 @@
   <meta name="keywords" content="clinic queue management, digital token system, patient waiting room, OPD queue, hospital token system, real-time queue India" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <script src="/theme.js"></script>
   <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -37,28 +36,6 @@
     --shadow:     0 4px 16px rgba(0,0,0,0.08);
     --shadow-lg:  0 12px 40px rgba(0,0,0,0.12);
   }
-
-  html.dark-mode {
-    --bg:         #0f172a;
-    --bg-soft:    #1e293b;
-    --bg-blue:    #1e293b;
-    --border:     #334155;
-    --text:       #f8fafc;
-    --text-sec:   #cbd5e1;
-    --text-muted: #94a3b8;
-    --shadow-sm:  0 1px 4px rgba(0,0,0,0.4);
-    --shadow:     0 4px 16px rgba(0,0,0,0.5);
-    --shadow-lg:  0 12px 40px rgba(0,0,0,0.6);
-  }
-  
-  .theme-toggle-btn {
-    background: transparent; border: none; cursor: pointer;
-    font-size: 18px; color: var(--text); padding: 4px;
-    border-radius: 6px; transition: background 0.2s;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .theme-toggle-btn:hover { background: rgba(0,0,0,0.05); }
-  html.dark-mode .theme-toggle-btn:hover { background: rgba(255,255,255,0.1); }
 
   html { scroll-behavior: smooth; }
   body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
@@ -648,7 +625,6 @@
       <a href="#enquiry">Contact</a>
     </div>
     <div class="nav-actions">
-      <button class="theme-toggle-btn" title="Toggle Theme" style="margin-right: 10px;"></button>
       <a href="/patient.html" class="btn-nav-ghost" target="_blank">Patient View</a>
       <button onclick="openSignIn()" class="btn-nav-solid" style="border:none;cursor:pointer;font-family:inherit;">Sign In →</button>
     </div>
@@ -1364,6 +1340,10 @@
         <input id="si-pass" class="si-input" type="password" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter')doSignIn()" />
       </div>
       <button class="si-btn" onclick="doSignIn()">Sign In →</button>
+      <div style="margin-top: 15px; padding: 12px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 12px; text-align: center; color: #475569;">
+        <strong>Demo Account Available</strong><br/>
+        User: <strong>divyanshu</strong> &nbsp;|&nbsp; Pass: <strong>!1@2DgDg</strong>
+      </div>
     </div>
 
     <div id="form-register" style="display:none;">
