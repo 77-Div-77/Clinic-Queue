@@ -9,6 +9,7 @@
   <meta name="keywords" content="clinic queue management, digital token system, patient waiting room, OPD queue, hospital token system, real-time queue India" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="/theme.js"></script>
   <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -36,6 +37,28 @@
     --shadow:     0 4px 16px rgba(0,0,0,0.08);
     --shadow-lg:  0 12px 40px rgba(0,0,0,0.12);
   }
+
+  html.dark-mode {
+    --bg:         #0f172a;
+    --bg-soft:    #1e293b;
+    --bg-blue:    #1e293b;
+    --border:     #334155;
+    --text:       #f8fafc;
+    --text-sec:   #cbd5e1;
+    --text-muted: #94a3b8;
+    --shadow-sm:  0 1px 4px rgba(0,0,0,0.4);
+    --shadow:     0 4px 16px rgba(0,0,0,0.5);
+    --shadow-lg:  0 12px 40px rgba(0,0,0,0.6);
+  }
+  
+  .theme-toggle-btn {
+    background: transparent; border: none; cursor: pointer;
+    font-size: 18px; color: var(--text); padding: 4px;
+    border-radius: 6px; transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .theme-toggle-btn:hover { background: rgba(0,0,0,0.05); }
+  html.dark-mode .theme-toggle-btn:hover { background: rgba(255,255,255,0.1); }
 
   html { scroll-behavior: smooth; }
   body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
@@ -625,6 +648,7 @@
       <a href="#enquiry">Contact</a>
     </div>
     <div class="nav-actions">
+      <button class="theme-toggle-btn" title="Toggle Theme" style="margin-right: 10px;"></button>
       <a href="/patient.html" class="btn-nav-ghost" target="_blank">Patient View</a>
       <button onclick="openSignIn()" class="btn-nav-solid" style="border:none;cursor:pointer;font-family:inherit;">Sign In →</button>
     </div>
@@ -914,7 +938,7 @@
     </div>
     <div class="integrations-grid" data-fade>
       <div class="integration-card">
-        <img src="/feature_sms.png" alt="SMS Notifications Mockup" class="integration-img" />
+        <img src="/feature_sms.jpg" alt="SMS Notifications Mockup" class="integration-img" />
         <div class="integration-body">
           <span class="integration-badge sms">Twilio SMS</span>
           <h3>Instant Patient Alerts</h3>
@@ -922,7 +946,7 @@
         </div>
       </div>
       <div class="integration-card">
-        <img src="/feature_email.png" alt="Email Analytics Dashboard" class="integration-img" />
+        <img src="/feature_email.jpg" alt="Email Analytics Dashboard" class="integration-img" />
         <div class="integration-body">
           <span class="integration-badge email">SendGrid Reports</span>
           <h3>Rich Analytics Delivered</h3>
@@ -930,7 +954,7 @@
         </div>
       </div>
       <div class="integration-card">
-        <img src="/feature_excel.png" alt="Excel Export Spreadsheet" class="integration-img" />
+        <img src="/feature_excel.jpg" alt="Excel Export Spreadsheet" class="integration-img" />
         <div class="integration-body">
           <span class="integration-badge excel">Advanced Data</span>
           <h3>Excel Master Logs & PDF</h3>

@@ -26,6 +26,26 @@
   --shadow:    0 4px 16px rgba(0,0,0,0.08);
 }
 
+html.dark-mode {
+  --bg:        #0f172a;
+  --white:     #1e293b;
+  --text:      #f8fafc;
+  --text-sec:  #cbd5e1;
+  --text-muted:#64748b;
+  --border:    #334155;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.4);
+  --shadow:    0 4px 16px rgba(0,0,0,0.5);
+}
+
+.theme-toggle-btn {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 16px; color: var(--text); padding: 4px 8px;
+  border-radius: 6px; transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.theme-toggle-btn:hover { background: rgba(0,0,0,0.05); }
+html.dark-mode .theme-toggle-btn:hover { background: rgba(255,255,255,0.1); }
+
 html { scroll-behavior: smooth; }
 body {
   min-height: 100dvh; font-family: 'Inter', sans-serif;

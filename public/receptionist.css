@@ -32,6 +32,28 @@
   --tr:         0.18s ease;
 }
 
+html.dark-mode {
+  --blue-light: #1e293b;
+  --blue-mid:   #334155;
+  --bg:         #0f172a;
+  --bg-white:   #1e293b;
+  --sidebar-bg: #020617;
+  --border:     #334155;
+  --text:       #f8fafc;
+  --text-sec:   #cbd5e1;
+  --text-muted: #64748b;
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.4);
+  --shadow:     0 4px 16px rgba(0,0,0,0.5);
+}
+
+.theme-toggle-btn {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 16px; color: #fff; padding: 4px 8px;
+  border-radius: 6px; transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.theme-toggle-btn:hover { background: rgba(255,255,255,0.1); }
+
 html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; overflow-x: hidden; }
 
 /* ── SIDEBAR ── */
