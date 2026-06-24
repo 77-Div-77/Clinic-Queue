@@ -19,8 +19,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if(toggleBtn) {
     toggleBtn.addEventListener('click', () => {
-      sidebar.classList.add('mobile-open');
-      if (backdrop) backdrop.classList.add('show');
+      if (window.innerWidth <= 768) {
+        sidebar.classList.toggle('mobile-open');
+        if (backdrop) backdrop.classList.toggle('show');
+      } else {
+        sidebar.classList.toggle('collapsed');
+        const mainWrap = document.querySelector('.main-wrap');
+        if (mainWrap) {
+          if (sidebar.classList.contains('collapsed')) {
+            mainWrap.style.marginLeft = '0';
+            mainWrap.style.width = '100%';
+          } else {
+            mainWrap.style.marginLeft = 'var(--sidebar-w)';
+            mainWrap.style.width = 'calc(100% - var(--sidebar-w))';
+          }
+        }
+      }
     });
   }
   if(backdrop) {
@@ -303,4 +317,15 @@ function updateHistoryStats(dataArray) {
   } else {
     document.getElementById('h-kpi-peak').textContent = '—';
   }
+}
+
+function showQRModal() {
+  const qrUrl = window.location.origin + '/patient.html?clinicId=' + clinicId;
+  document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrUrl)}`;
+  const cidEl = document.getElementById('qr-clinic-id');
+  if (cidEl) cidEl.textContent = 'Clinic ID: ' + clinicId;
+  const qrLinkEl = document.getElementById('qr-link');
+  if (qrLinkEl) qrLinkEl.href = qrUrl;
+  const qrModal = document.getElementById('qr-modal');
+  if (qrModal) qrModal.classList.remove('hidden');
 }

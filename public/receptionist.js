@@ -584,24 +584,6 @@ function formatExactTime(ms) {
 }
 document.getElementById('input-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('add-patient-form').requestSubmit(); }});
 
-// ── MOBILE SIDEBAR ───────────────────────────────────────────
-const sidebar = document.querySelector('.sidebar');
-const backdrop = document.getElementById('sidebar-backdrop');
-const toggleBtn = document.getElementById('sidebar-toggle');
-
-if(toggleBtn) {
-  toggleBtn.addEventListener('click', () => {
-    sidebar.classList.add('mobile-open');
-    if (backdrop) backdrop.classList.add('show');
-  });
-}
-if(backdrop) {
-  backdrop.addEventListener('click', () => {
-    sidebar.classList.remove('mobile-open');
-    backdrop.classList.remove('show');
-  });
-}
-
 const btnSound = document.getElementById('toggle-sound');
 if (btnSound) {
   btnSound.addEventListener('click', () => {
