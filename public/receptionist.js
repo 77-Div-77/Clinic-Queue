@@ -35,6 +35,39 @@ let previousVoiceToken = null;
 
 // ── SIDEBAR TOGGLE & SETUP ────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  const sidebarBtn = document.getElementById('sidebar-toggle');
+  const sidebar = document.querySelector('.sidebar');
+  const mainWrap = document.querySelector('.main-wrap');
+  const backdrop = document.getElementById('sidebar-backdrop');
+
+  if (sidebarBtn) {
+    sidebarBtn.addEventListener('click', () => {
+      // For mobile: toggle slide-in drawer
+      if (window.innerWidth <= 1024) {
+        sidebar.classList.toggle('mobile-open');
+        backdrop.classList.toggle('show');
+      } else {
+        // For desktop: toggle collapsed state
+        sidebar.classList.toggle('collapsed');
+        if (sidebar.classList.contains('collapsed')) {
+          mainWrap.style.marginLeft = '0';
+          mainWrap.style.width = '100%';
+        } else {
+          mainWrap.style.marginLeft = 'var(--sidebar-w)';
+          mainWrap.style.width = 'calc(100% - var(--sidebar-w))';
+        }
+      }
+    });
+  }
+
+  if (backdrop) {
+    backdrop.addEventListener('click', () => {
+      sidebar.classList.remove('mobile-open');
+      backdrop.classList.remove('show');
+    });
+  }
+
+  // Initialize intl-tel-input
   // Initialize intl-tel-input
   const phoneEl = document.getElementById('input-phone');
   if (phoneEl && window.intlTelInput) {
