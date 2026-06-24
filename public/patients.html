@@ -9,6 +9,10 @@
   <link rel="stylesheet" href="receptionist.css" />
   <style>
     .patients-card { padding: 24px; }
+    @media (max-width: 600px) {
+      .patients-card { padding: 14px; }
+      #patients-search { width: 100% !important; margin-top: 8px; }
+    }
   </style>
 </head>
 <body>
@@ -60,11 +64,11 @@
     
     <div class="main-content" style="grid-template-columns: 1fr;">
       <div class="card patients-card">
-        <div class="qc-header" style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+        <div class="qc-header" style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
           <div>
             <div id="patients-count" style="font-size:12px;font-weight:700;color:var(--blue);">Loading…</div>
           </div>
-          <input id="patients-search" type="text" placeholder="🔍 Search name, phone or ID…" oninput="filterPatients()" class="queue-search" style="width:220px;" />
+          <input id="patients-search" type="text" placeholder="🔍 Search name, phone or ID…" oninput="filterPatients()" class="queue-search" style="min-width:160px; flex:1; max-width:260px;" />
         </div>
         <div class="queue-table-wrap">
           <table class="queue-table">

@@ -177,21 +177,21 @@
         <div class="card queue-card">
           <!-- QUEUE SECTION -->
           <div style="padding: 16px 20px 16px; border-bottom: 1px solid var(--border);">
-            <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-              <div style="display:flex; align-items:center; gap:24px;">
-                <div>
+            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; width:100%; align-items:center; gap:10px;">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; flex:1; min-width:0;">
+                <div style="min-width:0;">
                   <div class="qc-title" style="font-size: 18px;">Waiting Queue</div>
                   <div class="qc-sub" id="queue-sub" style="font-size: 13px;">0 patients waiting</div>
                 </div>
-                <input type="text" class="queue-search" style="padding: 8px 14px; font-size: 13px; width: 300px;" placeholder="🔍 Search patient…" oninput="filterQueue(this.value)" />
+                <input type="text" class="queue-search" style="padding: 8px 14px; font-size: 13px; min-width:120px; flex:1;" placeholder="🔍 Search patient…" oninput="filterQueue(this.value)" />
               </div>
-              <div style="display:flex; align-items:center; gap:20px;">
-                <div class="wt-toggle" style="background:var(--bg); padding:6px 12px; border-radius:6px; border:1px solid var(--border); font-size:13px; font-weight:600;">
+              <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div class="wt-toggle" style="background:var(--bg); padding:6px 12px; border-radius:6px; border:1px solid var(--border); font-size:13px; font-weight:600; white-space:nowrap;">
                   <span style="margin-right:8px;">Preview:</span>
                   <label style="margin-right:8px;"><input type="radio" name="preview_mode" id="preview-auto" value="auto" onchange="updateLocalPreview()" checked> Auto</label>
                   <label><input type="radio" name="preview_mode" id="preview-manual" value="manual" onchange="updateLocalPreview()"> Manual</label>
                 </div>
-                <button id="btn-apply-mode" class="btn-primary" style="padding:8px 18px; font-size:13px; font-weight:700; display:none;" onclick="applyGlobalMode()">Apply</button>
+                <button id="btn-apply-mode" class="btn-primary" style="padding:8px 18px; font-size:13px; font-weight:700; display:none; white-space:nowrap;" onclick="applyGlobalMode()">Apply</button>
               </div>
             </div>
           </div>

@@ -35,14 +35,6 @@ let previousVoiceToken = null;
 
 // ── SIDEBAR TOGGLE & SETUP ────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('sidebar-toggle');
-  if (toggle) {
-    toggle.addEventListener('click', () => {
-      document.querySelector('.sidebar')?.classList.toggle('collapsed');
-      document.querySelector('.main-wrap')?.classList.toggle('collapsed');
-    });
-  }
-  
   // Initialize intl-tel-input
   const phoneEl = document.getElementById('input-phone');
   if (phoneEl && window.intlTelInput) {

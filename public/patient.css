@@ -249,3 +249,29 @@ body::before {
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 480px) {
+  .hero-section { padding: 36px 16px 48px; }
+  .hero-token { font-size: clamp(60px, 22vw, 90px); letter-spacing: -2px; }
+  .hero-sub { font-size: 13px; }
+  .stats-row { gap: 8px; padding: 0 12px; margin-top: -24px; }
+  .stat-pill { padding: 10px 14px; min-width: 80px; }
+  .stat-val { font-size: 20px; }
+  .section-wrap { padding: 16px 12px 0; }
+  .lookup-card { padding: 20px 16px; }
+  .lookup-input { font-size: 20px; padding: 11px 14px; }
+  .wl-item { padding: 12px; gap: 10px; }
+  .wl-info-top { font-size: 12px; }
+  .wl-wait-val { font-size: 15px; }
+  .page-footer { padding: 8px 12px; font-size: 10px; flex-direction: column; gap: 2px; text-align: center; }
+  .sa-card { padding: 28px 20px; }
+  .sa-title { font-size: 20px; }
+}
+
+@media (max-width: 360px) {
+  .stats-row { flex-wrap: nowrap; gap: 6px; }
+  .stat-pill { padding: 8px 10px; min-width: 70px; }
+  .stat-val { font-size: 18px; }
+  .stat-lbl { font-size: 9px; }
+}

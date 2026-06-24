@@ -290,13 +290,15 @@
   .step-connector { position: absolute; right: -14px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; background: var(--blue-light); border: 1px solid var(--blue-mid); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--blue); font-size: 12px; font-weight: 700; z-index: 2; }
   .step-card:last-child .step-connector { display: none; }
 
-  /* ─────────────────── FEATURES GRID ─────────────────── */
   .features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 52px; }
   .feature-card {
     background: #fff; border: 1px solid var(--border); border-radius: var(--r);
     padding: 28px 24px; transition: all 0.25s;
     box-shadow: var(--shadow-sm);
   }
+  .feature-card--full { grid-column: span 3; }
+  @media (max-width: 768px) { .feature-card--full { grid-column: span 2; } }
+  @media (max-width: 480px) { .feature-card--full { grid-column: span 1; } }
   .feature-card:hover { border-color: var(--blue-mid); box-shadow: var(--shadow); transform: translateY(-2px); }
   .fc-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px; }
   .fc-icon.blue   { background: var(--blue-light); border: 1px solid var(--blue-mid); }
@@ -498,6 +500,48 @@
   [data-fade].visible { opacity: 1; transform: none; }
   .text-blue { color: var(--blue); }
 
+  /* ─────────────────── MOBILE NAV DRAWER ─────────────────── */
+  .nav-drawer {
+    display: none;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;
+  }
+  .nav-drawer.open { display: block; }
+  .nav-drawer-backdrop {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(3px);
+  }
+  .nav-drawer-panel {
+    position: absolute; top: 0; right: 0; bottom: 0; width: min(300px, 85vw);
+    background: #fff; box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+    display: flex; flex-direction: column; overflow-y: auto;
+    animation: drawer-in 0.28s ease;
+  }
+  @keyframes drawer-in { from{transform:translateX(100%)} to{transform:none} }
+  .nav-drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+  }
+  .nav-drawer-logo { font-size: 18px; font-weight: 900; color: var(--blue); }
+  .nav-drawer-close {
+    background: none; border: none; font-size: 22px; cursor: pointer;
+    color: var(--text-muted); line-height: 1; padding: 4px;
+  }
+  .nav-drawer-links { padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .nav-drawer-links a {
+    padding: 12px 14px; border-radius: 8px;
+    color: var(--text); font-size: 15px; font-weight: 500;
+    text-decoration: none; display: block; transition: background 0.15s;
+  }
+  .nav-drawer-links a:hover { background: var(--bg-blue); color: var(--blue); }
+  .nav-drawer-actions {
+    padding: 16px 20px; border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 10px; margin-top: auto;
+  }
+  .nav-hamburger.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+  .nav-hamburger.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+  .nav-hamburger span { transition: all 0.25s ease; }
+
   /* ─────────────────── RESPONSIVE ─────────────────── */
   @media (max-width: 1024px) {
     .hero-inner   { grid-template-columns: 1fr; }
@@ -512,19 +556,34 @@
   @media (max-width: 768px) {
     .nav-links, .nav-actions { display: none; }
     .nav-hamburger { display: flex; }
+    .hero { padding: 48px 5vw 40px; }
+    .section { padding: 52px 5vw; }
     .steps-grid { grid-template-columns: 1fr; }
     .features-grid { grid-template-columns: 1fr 1fr; }
     .integrations-grid { grid-template-columns: 1fr; }
     .testimonials-grid { grid-template-columns: 1fr; }
     .stats-inner { grid-template-columns: repeat(2,1fr); gap: 20px; }
     .stat-box + .stat-box { border-left: none; }
-    .top-bar { flex-direction: column; align-items: flex-start; }
+    .top-bar { display: none; }
     .ef-row { grid-template-columns: 1fr; }
     .footer-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: clamp(28px, 8vw, 40px); letter-spacing: -0.5px; }
+    .hero-sub { font-size: 15px; }
+    .hero-trust { gap: 12px; }
+    .btn-primary, .btn-secondary { padding: 12px 20px; font-size: 14px; }
+    .section-title { font-size: clamp(22px, 6vw, 34px); }
+    .lqs-title { font-size: clamp(22px, 6vw, 34px); }
+    .step-connector { display: none; }
   }
   @media (max-width: 480px) {
     .features-grid { grid-template-columns: 1fr; }
     .why-grid { grid-template-columns: 1fr 1fr; }
+    .stats-inner { grid-template-columns: 1fr 1fr; }
+    .hero-actions { flex-direction: column; }
+    .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
+    .contact-grid { gap: 32px; }
+    .enquiry-form { padding: 20px 16px; }
+    .footer-bottom { flex-direction: column; align-items: flex-start; gap: 8px; }
   }
   </style>
 </head>
@@ -574,6 +633,29 @@
     </div>
   </div>
 </nav>
+
+<!-- ── MOBILE NAV DRAWER ─────────────────────────────────── -->
+<div class="nav-drawer" id="nav-drawer">
+  <div class="nav-drawer-backdrop" onclick="closeDrawer()"></div>
+  <div class="nav-drawer-panel">
+    <div class="nav-drawer-header">
+      <span class="nav-drawer-logo">🏥 ClinicQ</span>
+      <button class="nav-drawer-close" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div class="nav-drawer-links">
+      <a href="#about" onclick="closeDrawer()">About</a>
+      <a href="#how-it-works" onclick="closeDrawer()">How It Works</a>
+      <a href="#features" onclick="closeDrawer()">Features</a>
+      <a href="#live-queue" onclick="closeDrawer()">Live Queue</a>
+      <a href="#faq" onclick="closeDrawer()">FAQ</a>
+      <a href="#enquiry" onclick="closeDrawer()">Contact</a>
+    </div>
+    <div class="nav-drawer-actions">
+      <a href="/patient.html" class="btn-secondary" target="_blank" style="text-align:center;">📱 Patient View</a>
+      <button onclick="closeDrawer();openSignIn()" class="btn-primary" style="border:none;cursor:pointer;font-family:inherit;text-align:center;">Sign In &rarr;</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── HERO ──────────────────────────────────────────────────── -->
 <section class="hero" id="home">
@@ -813,7 +895,7 @@
         <h3>Auto-Reconnect on Network Loss</h3>
         <p>Socket.IO reconnects automatically on any network drop. Full queue state is delivered back within milliseconds of reconnecting.</p>
       </div>
-      <div class="feature-card" style="grid-column: span 3; text-align: center; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
+      <div class="feature-card feature-card--full" style="text-align: center; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
         <div class="fc-icon blue" style="background: #1a6fbc; color: #fff;">🔊</div>
         <h3>Audio Token Announcements</h3>
         <p>Built-in Web Speech API integration automatically announces token numbers across the clinic's sound system the moment they are called.</p>
@@ -1160,6 +1242,24 @@
 </footer>
 
 <script>
+  // Hamburger / nav drawer
+  const drawer = document.getElementById('nav-drawer');
+  const hamburger = document.querySelector('.nav-hamburger');
+  function openDrawer() {
+    drawer.classList.add('open');
+    hamburger.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    hamburger.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  hamburger.addEventListener('click', () => {
+    drawer.classList.contains('open') ? closeDrawer() : openDrawer();
+  });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeDrawer(); });
+
   // Scroll fade-in
   const faders = document.querySelectorAll('[data-fade]');
   const obs = new IntersectionObserver(entries => {

@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="receptionist.css" />
   <style>
     .history-card { padding: 24px; }
-    .history-controls { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; }
+    .history-controls { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; flex-wrap: wrap; }
     .export-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; }
     .export-section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
     .export-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -18,6 +18,15 @@
     .export-btn-purple { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
     .export-btn-purple:hover { background: #ddd6fe; }
     .export-label { font-size: 12px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+    .history-kpi { grid-template-columns: 1fr 1fr 1fr !important; }
+    @media (max-width: 600px) {
+      .history-card { padding: 14px; }
+      .history-kpi { grid-template-columns: 1fr !important; }
+      .export-section { padding: 12px; margin: 10px 10px 0; }
+      .export-row { flex-direction: column; align-items: flex-start; }
+      #export-from, #export-to { width: 100%; }
+      .export-label { margin-top: 4px; }
+    }
   </style>
 </head>
 <body>
@@ -90,7 +99,7 @@
           </div>
         </div>
         
-        <div class="kpi-strip" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 0; border-bottom: 1px solid var(--border); border-radius: 0; box-shadow: none;">
+        <div class="kpi-strip history-kpi" style="margin-bottom: 0; border-bottom: 1px solid var(--border); border-radius: 0; box-shadow: none;">
           <div class="kpi-card" style="box-shadow:none;border:none;">
             <div class="kpi-icon green">✅</div>
             <div class="kpi-body"><div class="kpi-val green" id="h-kpi-total">0</div><div class="kpi-label">Total Served</div></div>
